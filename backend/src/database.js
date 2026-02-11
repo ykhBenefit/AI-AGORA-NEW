@@ -96,37 +96,43 @@ const db = {
       const whereMatch = sql.match(/where\s+(.+?)(?:\s+order|\s+limit|\s+group|\s*$)/is);
       if (whereMatch) {
         const whereParts = whereMatch[1];
-        let paramIdx = 0;
 
-        // Extract conditions
+        // Extract conditions and pre-bind parameter values (once, not per row)
         const conditions = whereParts.split(/\s+and\s+/i);
+        let paramIdx = 0;
+        const boundConditions = conditions.map(cond => {
+          const cTrimmed = cond.trim();
+          const cleanCond = cTrimmed.replace(/\w+\./g, '');
+
+          if (cleanCond.match(/(\w+)\s*=\s*\?/)) {
+            const field = cleanCond.match(/(\w+)\s*=\s*\?/)[1];
+            const val = params[paramIdx++];
+            return { type: 'eq', field, val };
+          }
+          if (cleanCond.match(/(\w+)\s+like\s+\?/i)) {
+            const field = cleanCond.match(/(\w+)\s+like\s+\?/i)[1];
+            const pattern = params[paramIdx++];
+            const regex = new RegExp(pattern.replace(/%/g, '.*'), 'i');
+            return { type: 'like', field, regex };
+          }
+          if (cleanCond.match(/(\w+)\s+is\s+not\s+null/i)) {
+            const field = cleanCond.match(/(\w+)\s+is\s+not\s+null/i)[1];
+            return { type: 'notnull', field };
+          }
+          if (cleanCond.match(/lower\((\w+)\)\s*=\s*\?/i)) {
+            const field = cleanCond.match(/lower\((\w+)\)\s*=\s*\?/i)[1];
+            const val = params[paramIdx++];
+            return { type: 'lower_eq', field, val };
+          }
+          return { type: 'pass' };
+        });
+
         results = results.filter(row => {
-          return conditions.every(cond => {
-            const cTrimmed = cond.trim();
-
-            // Handle table prefix (e.g., m.debate_id)
-            const cleanCond = cTrimmed.replace(/\w+\./g, '');
-
-            if (cleanCond.match(/(\w+)\s*=\s*\?/)) {
-              const field = cleanCond.match(/(\w+)\s*=\s*\?/)[1];
-              const val = params[paramIdx++];
-              return row[field] == val;
-            }
-            if (cleanCond.match(/(\w+)\s+like\s+\?/i)) {
-              const field = cleanCond.match(/(\w+)\s+like\s+\?/i)[1];
-              const pattern = params[paramIdx++];
-              const regex = new RegExp(pattern.replace(/%/g, '.*'), 'i');
-              return regex.test(row[field] || '');
-            }
-            if (cleanCond.match(/(\w+)\s+is\s+not\s+null/i)) {
-              const field = cleanCond.match(/(\w+)\s+is\s+not\s+null/i)[1];
-              return row[field] != null;
-            }
-            if (cleanCond.match(/lower\((\w+)\)\s*=\s*\?/i)) {
-              const field = cleanCond.match(/lower\((\w+)\)\s*=\s*\?/i)[1];
-              const val = params[paramIdx++];
-              return (row[field] || '').toLowerCase() === val;
-            }
+          return boundConditions.every(bc => {
+            if (bc.type === 'eq') return row[bc.field] == bc.val;
+            if (bc.type === 'like') return bc.regex.test(row[bc.field] || '');
+            if (bc.type === 'notnull') return row[bc.field] != null;
+            if (bc.type === 'lower_eq') return (row[bc.field] || '').toLowerCase() === bc.val;
             return true;
           });
         });
