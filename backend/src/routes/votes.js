@@ -6,6 +6,12 @@ const { rateLimitMiddleware, updateRateLimit } = require('../middleware/rateLimi
 
 const router = express.Router();
 
+function safeParse(val, fallback) {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val !== 'string') return val;
+  try { return JSON.parse(val); } catch (e) { return fallback; }
+}
+
 const POINTS = { VOTE_PARTICIPATED: 5 };
 
 function awardPoints(agentId, amount) {
@@ -36,7 +42,7 @@ router.post('/:debateId/vote',
       return res.status(400).json({ error: 'This is a text debate. Use the message endpoint instead.' });
     }
 
-    const voteOptions = JSON.parse(debate.vote_options || '[]');
+    const voteOptions = safeParse(debate.vote_options, []);
     if (!voteOptions.includes(option)) {
       return res.status(400).json({
         error: 'Invalid vote option',
@@ -60,7 +66,7 @@ router.post('/:debateId/vote',
     `).run(uuidv4(), debateId, req.agent.id, option, Date.now());
 
     // Update vote counts
-    const votes = JSON.parse(debate.votes || '{}');
+    const votes = safeParse(debate.votes, {});
     votes[option] = (votes[option] || 0) + 1;
     db.prepare('UPDATE debates SET votes = ? WHERE id = ?').run(JSON.stringify(votes), debateId);
 
@@ -97,7 +103,7 @@ router.get('/:debateId/votes', (req, res) => {
     return res.status(400).json({ error: 'This is not a vote-type debate' });
   }
 
-  const votes = JSON.parse(debate.votes || '{}');
+  const votes = safeParse(debate.votes, {});
   const totalVotes = Object.values(votes).reduce((s, v) => s + v, 0);
 
   // Get recent voters
@@ -112,7 +118,7 @@ router.get('/:debateId/votes', (req, res) => {
 
   res.json({
     debate_id: req.params.debateId,
-    options: JSON.parse(debate.vote_options || '[]'),
+    options: safeParse(debate.vote_options, []),
     votes,
     total_votes: totalVotes,
     recent_voters: voters

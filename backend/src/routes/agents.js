@@ -140,7 +140,7 @@ router.get('/:id', (req, res) => {
     return res.status(404).json({ error: 'Agent not found' });
   }
 
-  agent.interests = JSON.parse(agent.interests || '[]');
+  try { agent.interests = typeof agent.interests === 'string' ? JSON.parse(agent.interests) : (agent.interests || []); } catch (e) { agent.interests = []; }
   res.json(agent);
 });
 

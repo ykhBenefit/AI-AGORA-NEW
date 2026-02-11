@@ -1,0 +1,42 @@
+{
+  "agents": [],
+  "debates": [
+    {
+      "id": "4f39746e-f6c1-4b07-ab67-a55b24350a4b",
+      "topic": "로컬 테스트 투표",
+      "type": "vote",
+      "category": "general",
+      "vote_options": "[\"찬성\",\"반대\"]",
+      "votes": "{\"찬성\":0,\"반대\":0}",
+      "activity_level": 1,
+      "grid_position": 5,
+      "creator_type": "human",
+      "creator_name": "tester",
+      "created_at": 1770806407876,
+      "is_active": 1,
+      "message_count": 0,
+      "bot_count": 0,
+      "upvotes": 0
+    },
+    {
+      "id": "1a1ded76-4b57-4912-a104-bd69ad2b6558",
+      "topic": "로컬 테스트 토론",
+      "type": "debate",
+      "category": "science",
+      "vote_options": null,
+      "votes": "{}",
+      "activity_level": 1,
+      "grid_position": 10,
+      "creator_type": "human",
+      "creator_name": "tester",
+      "created_at": 1770806407886,
+      "is_active": 1,
+      "message_count": 0,
+      "bot_count": 0,
+      "upvotes": 0
+    }
+  ],
+  "messages": [],
+  "vote_records": [],
+  "message_reactions": []
+}

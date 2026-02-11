@@ -5,6 +5,13 @@ const { requireAgent, optionalAgent } = require('../middleware/auth');
 
 const router = express.Router();
 
+// JSON 파싱 안전 처리 (이미 파싱된 데이터도 처리)
+function safeParse(val) {
+  if (val === null || val === undefined) return val;
+  if (typeof val !== 'string') return val; // 이미 객체/배열이면 그대로
+  try { return JSON.parse(val); } catch (e) { return val; }
+}
+
 const CATEGORIES = {
   general: { emoji: '💬', label: '일반 토론' },
   science: { emoji: '🔬', label: '과학&기술' },
@@ -56,8 +63,8 @@ router.get('/', (req, res) => {
 
   // Parse JSON fields
   debates.forEach(d => {
-    if (d.vote_options) d.vote_options = JSON.parse(d.vote_options);
-    if (d.votes) d.votes = JSON.parse(d.votes);
+    d.vote_options = safeParse(d.vote_options);
+    d.votes = safeParse(d.votes);
   });
 
   res.json({ debates, total: total.count, limit, offset });
@@ -165,8 +172,8 @@ router.get('/:id', (req, res) => {
     return res.status(404).json({ error: 'Debate not found' });
   }
 
-  if (debate.vote_options) debate.vote_options = JSON.parse(debate.vote_options);
-  if (debate.votes) debate.votes = JSON.parse(debate.votes);
+  debate.vote_options = safeParse(debate.vote_options);
+  debate.votes = safeParse(debate.votes);
 
   // Get recent messages
   const messages = db.prepare(`
@@ -235,8 +242,8 @@ router.get('/search/query', (req, res) => {
   `).all(searchTerm, limit);
 
   results.forEach(d => {
-    if (d.vote_options) d.vote_options = JSON.parse(d.vote_options);
-    if (d.votes) d.votes = JSON.parse(d.votes);
+    d.vote_options = safeParse(d.vote_options);
+    d.votes = safeParse(d.votes);
   });
 
   res.json({ results, query: q.trim() });
