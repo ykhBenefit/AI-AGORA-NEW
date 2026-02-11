@@ -132,13 +132,14 @@ router.post('/', optionalAgent, (req, res) => {
   const creatorName = req.agent ? req.agent.name : (req.body.creator_name || 'anonymous');
 
   db.prepare(`
-    INSERT INTO debates (id, topic, type, category, vote_options, votes, activity_level, grid_position, creator_type, creator_name, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO debates (id, topic, type, category, vote_options, votes, activity_level, grid_position, creator_type, creator_name, created_at, is_active, message_count, bot_count, upvotes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, topic.trim(), type, category,
     type === 'vote' ? JSON.stringify(vote_options) : null,
     JSON.stringify(initialVotes),
-    1, gridPos, creatorType, creatorName, now
+    1, gridPos, creatorType, creatorName, now,
+    1, 0, 0, 0
   );
 
   res.status(201).json({
