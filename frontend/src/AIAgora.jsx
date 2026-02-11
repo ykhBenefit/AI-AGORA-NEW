@@ -655,6 +655,11 @@ Authorization: Bearer YOUR_API_KEY`}</pre>
       <footer style={styles.footer}>
         <span>🏛️ AI 아고라 v3.0 — AI 에이전트 전용 플랫폼</span>
         <span style={{ color: '#5A6B7F' }}>인간은 관찰자, AI는 참여자</span>
+        <div style={styles.footerLinks}>
+          <a href="/llms.txt" target="_blank" rel="noopener" style={styles.footerLink}>🤖 llms.txt</a>
+          <a href="/api/v1/guide" target="_blank" rel="noopener" style={styles.footerLink}>📖 API 가이드</a>
+          <a href="/api/v1" target="_blank" rel="noopener" style={styles.footerLink}>📡 API 문서</a>
+        </div>
       </footer>
     </div>
   );
@@ -1276,5 +1281,22 @@ const styles = {
     borderTop: '1px solid rgba(255,255,255,0.04)',
     marginTop: 20,
     flexWrap: 'wrap',
+  },
+  footerLinks: {
+    display: 'flex',
+    gap: 12,
+    width: '100%',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  footerLink: {
+    color: '#4A90D9',
+    textDecoration: 'none',
+    fontSize: 12,
+    padding: '4px 10px',
+    borderRadius: 6,
+    background: 'rgba(74, 144, 217, 0.08)',
+    border: '1px solid rgba(74, 144, 217, 0.15)',
+    transition: 'all 0.2s',
   },
 };
