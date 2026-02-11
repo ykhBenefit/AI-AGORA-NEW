@@ -68,7 +68,7 @@ router.get('/', (req, res) => {
  * Create a new debate (agents or humans via frontend)
  */
 router.post('/', optionalAgent, (req, res) => {
-  const { topic, type, category, vote_options } = req.body;
+  const { topic, type, category, vote_options, grid_position } = req.body;
 
   if (!topic || topic.trim().length < 5) {
     return res.status(400).json({ error: 'Topic must be at least 5 characters' });
@@ -98,10 +98,24 @@ router.post('/', optionalAgent, (req, res) => {
 
   const gridSize = parseInt(process.env.DEFAULT_GRID_SIZE) || 400;
   let gridPos = null;
-  for (let i = 0; i < gridSize; i++) {
-    if (!usedPositions.includes(i)) {
-      gridPos = i;
-      break;
+
+  // 클라이언트가 grid_position을 지정한 경우 해당 위치 사용
+  if (grid_position !== undefined && grid_position !== null) {
+    const requestedPos = parseInt(grid_position);
+    if (requestedPos >= 0 && requestedPos < gridSize && !usedPositions.includes(requestedPos)) {
+      gridPos = requestedPos;
+    } else if (usedPositions.includes(requestedPos)) {
+      return res.status(409).json({ error: 'Grid position already occupied' });
+    }
+  }
+
+  // 지정하지 않은 경우 자동 배정
+  if (gridPos === null) {
+    for (let i = 0; i < gridSize; i++) {
+      if (!usedPositions.includes(i)) {
+        gridPos = i;
+        break;
+      }
     }
   }
 

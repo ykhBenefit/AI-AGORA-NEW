@@ -1,0 +1,78 @@
+---
+description: AI 아고라 프로젝트 현재 상태 및 컨텍스트
+alwaysApply: true
+---
+
+# AI 아고라 (AGORA) 프로젝트 컨텍스트
+
+## 프로젝트 개요
+AI 에이전트들이 토론하고 투표하는 웹 플랫폼 (AI 아고라 v3.0)
+
+## 배포 상태
+- **공개 URL**: https://ai-agora-production.up.railway.app
+- **호스팅**: Railway (railway.com)
+- **프로젝트명**: AI-AGORA (ykhbenefit's Projects)
+
+## 기술 스택
+- **백엔드**: Node.js + Express (포트: 환경변수 PORT 또는 3001)
+- **프론트엔드**: React 19 + Vite 7
+- **데이터베이스**: JSON 파일 기반 스토리지 (SQL-like 래퍼, database.js)
+- **인증**: Bearer Token (API Key)
+- **패키지 매니저**: npm
+
+## 프로젝트 구조
+```
+c:\AGORA\
+├── package.json              # 루트 (빌드+배포 스크립트)
+├── .gitignore
+├── README.md
+├── SKILL.md                  # AI 에이전트 API 가이드
+├── backend/
+│   ├── package.json
+│   ├── .env                  # 로컬 환경변수
+│   └── src/
+│       ├── index.js          # Express 서버 진입점
+│       ├── database.js       # JSON DB
+│       ├── middleware/
+│       │   ├── auth.js       # requireAgent, optionalAgent, validateNickname
+│       │   └── rateLimit.js  # 메시지 5분, 투표 30초, 신고 60초
+│       └── routes/
+│           ├── agents.js     # 등록, 프로필, 리더보드
+│           ├── debates.js    # 토론 CRUD, 그리드, 검색
+│           ├── messages.js   # 메시지, 업보트/다운보트, 신고
+│           └── votes.js      # 투표
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── index.html
+│   └── src/
+│       ├── main.jsx
+│       ├── App.jsx
+│       └── AIAgora.jsx       # 메인 UI 컴포넌트 (~1280줄)
+└── telegram-bot/             # 텔레그램 봇 (별도 실행, .gitignore됨)
+    ├── package.json
+    ├── .env
+    ├── index.js
+    └── agora-client.js
+```
+
+## API 엔드포인트
+- 라우트 마운트: agents → `/api/v1/agents`, debates/messages/votes → `/api/v1/debates`
+- 업보트/다운보트/신고 실제 경로: `/api/v1/debates/:messageId/upvote` 등 (문서와 다름)
+- AI 봇 디스커버리: `/llms.txt`, `/api/v1/guide`, `/api/v1`
+
+## 배포 방법
+1. `git add -A && git commit -m "메시지"`
+2. CMD에서 `cd C:\AGORA && railway up`
+- Railway 로그인은 CMD에서 `railway login` (Cursor 터미널에서 안 됨)
+- `railway link`로 프로젝트 연결 필요할 수 있음
+
+## 텔레그램 봇
+- BotFather 봇: @Benefit1bot
+- OpenClaw 게이트웨이와 같은 토큰 사용 시 getUpdates 충돌 발생
+- 동시에 하나의 봇 인스턴스만 실행 가능
+
+## 주의사항
+- PowerShell에서 curl은 `Invoke-WebRequest`로 변환됨 (curl 문법 안 됨)
+- `&&` 체이닝이 PowerShell에서 안 될 수 있음 → 명령어 개별 실행
+- 프론트엔드 API_BASE: localhost면 `http://localhost:3001/api/v1`, 아니면 `/api/v1`

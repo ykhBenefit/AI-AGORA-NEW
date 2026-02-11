@@ -43,12 +43,14 @@ export default function AIAgora() {
 
   // Grid
   const [hoveredDebate, setHoveredDebate] = useState(null);
+  const [hoveredEmptyCell, setHoveredEmptyCell] = useState(null);
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [filterCategory, setFilterCategory] = useState(null);
 
   // Create debate
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedGridPosition, setSelectedGridPosition] = useState(null);
   const [newTopic, setNewTopic] = useState('');
   const [debateType, setDebateType] = useState('debate');
   const [selectedCategory, setSelectedCategory] = useState('general');
@@ -120,6 +122,11 @@ export default function AIAgora() {
     } catch (e) { setSearchResults([]); }
   };
 
+  const openCreateModal = (gridPosition = null) => {
+    setSelectedGridPosition(gridPosition);
+    setShowCreateModal(true);
+  };
+
   const handleCreateDebate = async () => {
     if (newTopic.trim().length < 5) return alert('토론 주제는 5자 이상이어야 합니다.');
     if (debateType === 'vote') {
@@ -133,11 +140,15 @@ export default function AIAgora() {
         category: selectedCategory,
         creator_name: creatorName.trim() || 'anonymous',
       };
+      if (selectedGridPosition !== null) {
+        body.grid_position = selectedGridPosition;
+      }
       if (debateType === 'vote') {
         body.vote_options = voteOptions.filter(o => o.trim());
       }
       await api('/debates', { method: 'POST', body: JSON.stringify(body) });
       setShowCreateModal(false);
+      setSelectedGridPosition(null);
       setNewTopic('');
       setVoteOptions(['', '']);
       fetchDebates();
@@ -300,7 +311,7 @@ export default function AIAgora() {
             <button onClick={() => setShowGuide(true)} style={styles.headerBtn}>
               📖 이용안내
             </button>
-            <button onClick={() => setShowCreateModal(true)} style={styles.createBtn}>
+            <button onClick={() => openCreateModal(null)} style={styles.createBtn}>
               + 토론 만들기
             </button>
           </div>
@@ -371,7 +382,25 @@ export default function AIAgora() {
             {Array.from({ length: totalCells }).map((_, i) => {
               const debate = filteredDebates.find(d => d.grid_position === i);
               if (!debate) {
-                return <div key={i} style={styles.emptyCell(gridConfig.size)} />;
+                const isHovered = hoveredEmptyCell === i;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      ...styles.emptyCell(gridConfig.size),
+                      ...(isHovered ? {
+                        background: 'rgba(74, 144, 217, 0.15)',
+                        border: '1px dashed rgba(74, 144, 217, 0.5)',
+                      } : {}),
+                    }}
+                    onClick={() => openCreateModal(i)}
+                    onMouseEnter={() => setHoveredEmptyCell(i)}
+                    onMouseLeave={() => setHoveredEmptyCell(null)}
+                    title="클릭하여 토론/투표 만들기"
+                  >
+                    {isHovered && <span style={{ fontSize: gridConfig.size > 22 ? 14 : 10, color: 'rgba(74,144,217,0.7)' }}>+</span>}
+                  </div>
+                );
               }
               const typeStyle = getTypeStyle(debate.type);
               return (
@@ -468,10 +497,17 @@ export default function AIAgora() {
 
       {/* Create Debate Modal */}
       {showCreateModal && (
-        <div style={styles.modalOverlay} onClick={() => setShowCreateModal(false)}>
+        <div style={styles.modalOverlay} onClick={() => { setShowCreateModal(false); setSelectedGridPosition(null); }}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
             <h2 style={styles.modalTitle}>🏛️ 새 토론 만들기</h2>
-            <p style={styles.modalDesc}>인간은 토론 주제를 생성할 수 있습니다. AI 에이전트가 참여합니다.</p>
+            <p style={styles.modalDesc}>
+              인간은 토론 주제를 생성할 수 있습니다. AI 에이전트가 참여합니다.
+              {selectedGridPosition !== null && (
+                <span style={{ display: 'block', marginTop: 6, color: '#4A90D9', fontSize: 12 }}>
+                  📍 그리드 위치 #{selectedGridPosition} 에 배치됩니다
+                </span>
+              )}
+            </p>
 
             <label style={styles.label}>주제</label>
             <input
@@ -544,7 +580,7 @@ export default function AIAgora() {
             />
 
             <div style={styles.modalActions}>
-              <button style={styles.cancelBtn} onClick={() => setShowCreateModal(false)}>취소</button>
+              <button style={styles.cancelBtn} onClick={() => { setShowCreateModal(false); setSelectedGridPosition(null); }}>취소</button>
               <button style={styles.submitBtn} onClick={handleCreateDebate}>토론 생성</button>
             </div>
           </div>
@@ -807,6 +843,11 @@ const styles = {
     borderRadius: 3,
     background: 'rgba(255,255,255,0.02)',
     border: '1px solid rgba(255,255,255,0.03)',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   }),
   activeCell: (size) => ({
     width: size,
