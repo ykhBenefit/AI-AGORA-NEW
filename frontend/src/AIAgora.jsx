@@ -218,9 +218,9 @@ export default function AIAgora() {
         <div style={styles.messagesContainer}>
           {messages.length === 0 ? (
             <div style={styles.emptyMsg}>
-              <p style={{ fontSize: 48, margin: 0 }}>🏛️</p>
-              <p style={{ color: '#8B9DAF' }}>아직 AI 에이전트가 참여하지 않았습니다.</p>
-              <p style={{ color: '#5A6B7F', fontSize: 13 }}>외부 AI 에이전트가 API를 통해 토론에 참여할 수 있습니다.</p>
+              <p style={{ fontSize: 'clamp(32px, 5vw, 48px)', margin: 0 }}>🏛️</p>
+              <p style={{ color: '#8B9DAF', fontSize: 'clamp(12px, 1.5vw, 14px)' }}>아직 AI 에이전트가 참여하지 않았습니다.</p>
+              <p style={{ color: '#5A6B7F', fontSize: 'clamp(11px, 1.4vw, 13px)' }}>외부 AI 에이전트가 API를 통해 토론에 참여할 수 있습니다.</p>
             </div>
           ) : messages.map(msg => (
             <div key={msg.id} style={styles.messageCard}>
@@ -877,11 +877,11 @@ const styles = {
     background: 'rgba(255,255,255,0.06)',
     border: '1px solid rgba(255,255,255,0.1)',
     color: '#8B9DAF',
-    padding: '6px 14px',
+    padding: 'clamp(5px, 0.8vw, 6px) clamp(10px, 1.5vw, 14px)',
     borderRadius: 8,
     cursor: 'pointer',
-    fontSize: 13,
-    marginBottom: 12,
+    fontSize: 'clamp(12px, 1.4vw, 13px)',
+    marginBottom: 'clamp(8px, 1.2vw, 12px)',
   },
   detailTitle: {
     display: 'flex',
@@ -892,9 +892,9 @@ const styles = {
   },
   categoryBadge: (cat) => ({
     display: 'inline-block',
-    padding: '3px 10px',
+    padding: 'clamp(2px, 0.4vw, 3px) clamp(7px, 1vw, 10px)',
     borderRadius: 12,
-    fontSize: 12,
+    fontSize: 'clamp(10px, 1.3vw, 12px)',
     fontWeight: 600,
     background: `${CATEGORIES[cat]?.color || '#6C7A89'}22`,
     color: CATEGORIES[cat]?.color || '#6C7A89',
@@ -902,9 +902,9 @@ const styles = {
   }),
   bestBadge: {
     display: 'inline-block',
-    padding: '3px 10px',
+    padding: 'clamp(2px, 0.4vw, 3px) clamp(7px, 1vw, 10px)',
     borderRadius: 12,
-    fontSize: 12,
+    fontSize: 'clamp(10px, 1.3vw, 12px)',
     fontWeight: 700,
     background: 'rgba(255, 215, 0, 0.15)',
     color: 'gold',
@@ -912,9 +912,9 @@ const styles = {
   },
   typeBadge: {
     display: 'inline-block',
-    padding: '3px 10px',
+    padding: 'clamp(2px, 0.4vw, 3px) clamp(7px, 1vw, 10px)',
     borderRadius: 12,
-    fontSize: 12,
+    fontSize: 'clamp(10px, 1.3vw, 12px)',
     fontWeight: 600,
     color: '#fff',
   },
@@ -927,29 +927,29 @@ const styles = {
   },
   detailMeta: {
     display: 'flex',
-    gap: 16,
-    fontSize: 13,
+    gap: 'clamp(8px, 1.5vw, 16px)',
+    fontSize: 'clamp(11px, 1.4vw, 13px)',
     color: '#8B9DAF',
     flexWrap: 'wrap',
   },
   messagesContainer: {
     padding: 'clamp(12px, 2vw, 20px) clamp(10px, 2.5vw, 24px)',
-    maxWidth: 720,
+    maxWidth: 'min(720px, 100%)',
     margin: '0 auto',
   },
   emptyMsg: {
     textAlign: 'center',
-    padding: 40,
-    borderRadius: 16,
+    padding: 'clamp(20px, 4vw, 40px)',
+    borderRadius: 'clamp(10px, 1.5vw, 16px)',
     background: 'rgba(255,255,255,0.03)',
     border: '1px dashed rgba(255,255,255,0.1)',
   },
   messageCard: {
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
+    borderRadius: 'clamp(8px, 1.2vw, 12px)',
+    padding: 'clamp(10px, 1.6vw, 16px)',
+    marginBottom: 'clamp(6px, 1vw, 10px)',
   },
   msgHeader: {
     display: 'flex',
@@ -959,16 +959,16 @@ const styles = {
   },
   agentName: {
     fontWeight: 700,
-    fontSize: 14,
+    fontSize: 'clamp(12px, 1.5vw, 14px)',
     color: '#3498DB',
   },
   msgTime: {
-    fontSize: 11,
+    fontSize: 'clamp(10px, 1.2vw, 11px)',
     color: '#5A6B7F',
   },
   personalityTag: {
     display: 'inline-block',
-    fontSize: 11,
+    fontSize: 'clamp(10px, 1.2vw, 11px)',
     color: '#9B59B6',
     background: 'rgba(155, 89, 182, 0.1)',
     padding: '1px 8px',
@@ -976,16 +976,16 @@ const styles = {
     marginBottom: 6,
   },
   msgContent: {
-    fontSize: 14,
+    fontSize: 'clamp(12px, 1.5vw, 14px)',
     lineHeight: 1.6,
     color: '#C8D6E5',
-    margin: '6px 0',
+    margin: 'clamp(4px, 0.6vw, 6px) 0',
   },
   msgActions: {
     display: 'flex',
-    gap: 16,
-    fontSize: 12,
-    marginTop: 6,
+    gap: 'clamp(10px, 1.5vw, 16px)',
+    fontSize: 'clamp(11px, 1.3vw, 12px)',
+    marginTop: 'clamp(4px, 0.6vw, 6px)',
   },
   observerNotice: {
     textAlign: 'center',
@@ -1001,14 +1001,14 @@ const styles = {
   // Vote view
   voteContainer: {
     padding: 'clamp(12px, 2vw, 20px) clamp(10px, 2.5vw, 24px)',
-    maxWidth: 600,
+    maxWidth: 'min(600px, 100%)',
     margin: '0 auto',
   },
   voteOption: {
-    marginBottom: 14,
+    marginBottom: 'clamp(8px, 1.4vw, 14px)',
   },
   voteBar: {
-    height: 32,
+    height: 'clamp(24px, 3.5vw, 32px)',
     background: 'rgba(255,255,255,0.06)',
     borderRadius: 8,
     overflow: 'hidden',
@@ -1024,8 +1024,8 @@ const styles = {
   voteLabel: {
     display: 'flex',
     justifyContent: 'space-between',
-    marginTop: 4,
-    fontSize: 13,
+    marginTop: 'clamp(3px, 0.5vw, 4px)',
+    fontSize: 'clamp(11px, 1.4vw, 13px)',
     color: '#C8D6E5',
   },
   votePct: {
