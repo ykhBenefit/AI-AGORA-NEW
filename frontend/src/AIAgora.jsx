@@ -174,13 +174,52 @@ export default function AIAgora() {
     setView(debate.type === 'vote' ? 'vote' : 'debate');
   };
 
-  // ─── Activity color ───
+  // ─── Activity color & effects ───
   const getActivityColor = (level, type) => {
     const intensity = Math.min(level / 10, 1);
     if (type === 'vote') {
       return `rgba(243, 156, 18, ${0.15 + intensity * 0.85})`;
     }
     return `rgba(46, 204, 113, ${0.15 + intensity * 0.85})`;
+  };
+
+  const getActivityEffect = (level, type) => {
+    const lv = Math.min(level, 10);
+    const isVote = type === 'vote';
+    const glowColor = isVote ? '243,156,18' : '46,204,113';
+
+    // Lv.1~3: 색상만
+    if (lv <= 3) return { style: {}, className: '' };
+
+    // Lv.4~6: 약한 glow
+    if (lv <= 6) {
+      const glowStrength = (lv - 3) / 3; // 0.33 ~ 1.0
+      return {
+        style: {
+          boxShadow: `0 0 ${3 + glowStrength * 4}px ${1 + glowStrength * 2}px rgba(${glowColor}, ${0.2 + glowStrength * 0.25})`,
+        },
+        className: '',
+      };
+    }
+
+    // Lv.7~9: 강한 glow + scale
+    if (lv <= 9) {
+      const glowStrength = (lv - 6) / 3; // 0.33 ~ 1.0
+      return {
+        style: {
+          boxShadow: `0 0 ${6 + glowStrength * 6}px ${2 + glowStrength * 3}px rgba(${glowColor}, ${0.4 + glowStrength * 0.3})`,
+          transform: `scale(${1.05 + glowStrength * 0.1})`,
+          zIndex: 10,
+        },
+        className: '',
+      };
+    }
+
+    // Lv.10: 최대 glow + scale + pulse 애니메이션
+    return {
+      style: { zIndex: 20 },
+      className: isVote ? 'cell-pulse-vote' : 'cell-pulse-debate',
+    };
   };
 
   const getTypeStyle = (type) => type === 'vote'
@@ -408,15 +447,18 @@ export default function AIAgora() {
                 );
               }
               const typeStyle = getTypeStyle(debate.type);
+              const effect = getActivityEffect(debate.activity_level, debate.type);
               return (
                 <div
                   key={i}
+                  className={effect.className || undefined}
                   style={{
                     width: cellSize,
                     height: cellSize,
                     ...styles.activeCell,
                     background: getActivityColor(debate.activity_level, debate.type),
                     border: isBestDebate(debate) ? '2px solid gold' : '1px solid rgba(255,255,255,0.1)',
+                    ...effect.style,
                   }}
                   onClick={() => openDebate(debate)}
                   onMouseEnter={(e) => {

@@ -66,3 +66,24 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* ─── Activity animations ─── */
+@keyframes cell-pulse {
+  0%, 100% { transform: scale(1.15); }
+  50% { transform: scale(1.25); }
+}
+@keyframes cell-glow-green {
+  0%, 100% { box-shadow: 0 0 6px 2px rgba(46,204,113,0.5); }
+  50% { box-shadow: 0 0 12px 4px rgba(46,204,113,0.8); }
+}
+@keyframes cell-glow-orange {
+  0%, 100% { box-shadow: 0 0 6px 2px rgba(243,156,18,0.5); }
+  50% { box-shadow: 0 0 12px 4px rgba(243,156,18,0.8); }
+}
+
+.cell-pulse-debate {
+  animation: cell-pulse 2s ease-in-out infinite, cell-glow-green 2s ease-in-out infinite;
+}
+.cell-pulse-vote {
+  animation: cell-pulse 2s ease-in-out infinite, cell-glow-orange 2s ease-in-out infinite;
+}
