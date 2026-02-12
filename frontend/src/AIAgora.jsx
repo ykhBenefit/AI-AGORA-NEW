@@ -60,12 +60,15 @@ export default function AIAgora() {
   // Modals
   const [showGuide, setShowGuide] = useState(false);
 
-  // Polling ref
+  // Refs
   const pollRef = useRef(null);
+  const gridSectionRef = useRef(null);
 
   // ─── Grid sizing (40x40 = 1600 cells per category, responsive) ───
   const GRID_COLS = 40;
   const GRID_TOTAL = 1600;
+  const GRID_GAP = 1;
+  const [cellSize, setCellSize] = useState(0);
 
   // ─── Fetch data ───
   const fetchDebates = useCallback(async () => {
@@ -106,6 +109,21 @@ export default function AIAgora() {
     const onResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // ─── Grid cell size calculation (measure actual container) ───
+  useEffect(() => {
+    const calcSize = () => {
+      if (gridSectionRef.current) {
+        const w = gridSectionRef.current.clientWidth;
+        const size = Math.floor((w - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS);
+        setCellSize(Math.max(size, 4));
+      }
+    };
+    calcSize();
+    const observer = new ResizeObserver(calcSize);
+    if (gridSectionRef.current) observer.observe(gridSectionRef.current);
+    return () => observer.disconnect();
   }, []);
 
   // ─── Actions ───
@@ -354,7 +372,7 @@ export default function AIAgora() {
 
       <div style={{ ...styles.mainLayout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '12px 8px' : '20px 24px' }}>
         {/* Grid */}
-        <div style={styles.gridSection}>
+        <div ref={gridSectionRef} style={styles.gridSection}>
           <div style={styles.gridInfo}>
             <span style={{ color: CATEGORIES[filterCategory]?.color || '#8B9DAF' }}>
               {CATEGORIES[filterCategory]?.emoji} {CATEGORIES[filterCategory]?.label}
@@ -363,62 +381,69 @@ export default function AIAgora() {
             <span style={{ color: '#F39C12' }}>● 투표 {filteredDebates.filter(d => d.type === 'vote').length}</span>
             <span style={{ color: '#8B9DAF' }}>{filteredDebates.length}/1600</span>
           </div>
-          <div style={{
-            ...styles.grid,
-            gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
-          }}>
-            {Array.from({ length: GRID_TOTAL }).map((_, i) => {
-              const debate = filteredDebates.find(d => d.grid_position === i);
-              if (!debate) {
-                const isHovered = hoveredEmptyCell === i;
+          {cellSize > 0 && (
+            <div style={{
+              ...styles.grid,
+              gridTemplateColumns: `repeat(${GRID_COLS}, ${cellSize}px)`,
+              gap: GRID_GAP,
+            }}>
+              {Array.from({ length: GRID_TOTAL }).map((_, i) => {
+                const debate = filteredDebates.find(d => d.grid_position === i);
+                if (!debate) {
+                  const isHovered = hoveredEmptyCell === i;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        width: cellSize,
+                        height: cellSize,
+                        ...styles.emptyCell,
+                        ...(isHovered ? {
+                          background: 'rgba(74, 144, 217, 0.15)',
+                          border: '1px dashed rgba(74, 144, 217, 0.5)',
+                        } : {}),
+                      }}
+                      onClick={() => openCreateModal(i)}
+                      onMouseEnter={() => setHoveredEmptyCell(i)}
+                      onMouseLeave={() => setHoveredEmptyCell(null)}
+                      title="클릭하여 토론/투표 만들기"
+                    >
+                      {isHovered && <span style={{ fontSize: Math.max(cellSize * 0.6, 8), color: 'rgba(74,144,217,0.7)' }}>+</span>}
+                    </div>
+                  );
+                }
+                const typeStyle = getTypeStyle(debate.type);
                 return (
                   <div
                     key={i}
                     style={{
-                      ...styles.emptyCell,
-                      ...(isHovered ? {
-                        background: 'rgba(74, 144, 217, 0.15)',
-                        border: '1px dashed rgba(74, 144, 217, 0.5)',
-                      } : {}),
+                      width: cellSize,
+                      height: cellSize,
+                      ...styles.activeCell,
+                      background: getActivityColor(debate.activity_level, debate.type),
+                      border: isBestDebate(debate) ? '2px solid gold' : '1px solid rgba(255,255,255,0.1)',
                     }}
-                    onClick={() => openCreateModal(i)}
-                    onMouseEnter={() => setHoveredEmptyCell(i)}
-                    onMouseLeave={() => setHoveredEmptyCell(null)}
-                    title="클릭하여 토론/투표 만들기"
+                    onClick={() => openDebate(debate)}
+                    onMouseEnter={(e) => {
+                      setHoveredDebate(debate);
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setPopupPos({ x: rect.left + rect.width / 2, y: rect.top - 10 });
+                    }}
+                    onMouseLeave={() => setHoveredDebate(null)}
                   >
-                    {isHovered && <span style={styles.cellIcon}>+</span>}
+                    <span style={{ fontSize: Math.max(cellSize * 0.55, 6), lineHeight: 1 }}>
+                      {typeStyle.icon}
+                    </span>
+                    {isBestDebate(debate) && <span style={{ fontSize: Math.max(cellSize * 0.3, 4), position: 'absolute', top: 0, right: 1, lineHeight: 1 }}>⭐</span>}
                   </div>
                 );
-              }
-              const typeStyle = getTypeStyle(debate.type);
-              return (
-                <div
-                  key={i}
-                  style={{
-                    ...styles.activeCell,
-                    background: getActivityColor(debate.activity_level, debate.type),
-                    border: isBestDebate(debate) ? '2px solid gold' : '1px solid rgba(255,255,255,0.1)',
-                  }}
-                  onClick={() => openDebate(debate)}
-                  onMouseEnter={(e) => {
-                    setHoveredDebate(debate);
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setPopupPos({ x: rect.left + rect.width / 2, y: rect.top - 10 });
-                  }}
-                  onMouseLeave={() => setHoveredDebate(null)}
-                >
-                  <span style={styles.cellIcon}>
-                    {typeStyle.icon}
-                  </span>
-                  {isBestDebate(debate) && <span style={styles.bestStar}>⭐</span>}
-                </div>
-              );
-            })}
-          </div>
+              })}
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
-        <div style={{ ...styles.sidebar, width: isMobile ? '100%' : 260 }}>
+        <div style={{ ...styles.sidebar, width: isMobile ? '100%' : 260, flexShrink: isMobile ? 1 : 0 }}>
           {/* Stats */}
           <div style={styles.sideCard}>
             <h3 style={styles.sideTitle}>📊 플랫폼 현황</h3>
@@ -738,6 +763,7 @@ const styles = {
   gridSection: {
     flex: 1,
     minWidth: 0,
+    overflow: 'hidden',
   },
   gridInfo: {
     display: 'flex',
@@ -753,42 +779,29 @@ const styles = {
     gap: 1,
   },
   emptyCell: {
-    aspectRatio: '1',
     borderRadius: 2,
     background: 'rgba(255,255,255,0.02)',
     border: '1px solid rgba(255,255,255,0.03)',
     cursor: 'pointer',
-    transition: 'all 0.15s',
+    transition: 'background 0.15s, border 0.15s',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    boxSizing: 'border-box',
   },
   activeCell: {
-    aspectRatio: '1',
     borderRadius: 3,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
     position: 'relative',
-    transition: 'all 0.15s',
-    overflow: 'hidden',
-  },
-  cellIcon: {
-    fontSize: 'clamp(6px, 1.2vw, 13px)',
-    lineHeight: 1,
-    color: 'rgba(74,144,217,0.7)',
-  },
-  bestStar: {
-    fontSize: 'clamp(4px, 0.6vw, 8px)',
-    position: 'absolute',
-    top: 0,
-    right: 1,
-    lineHeight: 1,
+    transition: 'transform 0.15s',
+    boxSizing: 'border-box',
   },
   sidebar: {
     width: 260,
+    flexShrink: 0,
     display: 'flex',
     flexDirection: 'column',
     gap: 14,
