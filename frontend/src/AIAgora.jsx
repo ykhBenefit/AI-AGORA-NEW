@@ -63,10 +63,11 @@ export default function AIAgora() {
   // Refs
   const pollRef = useRef(null);
 
-  // ─── Grid sizing (40x40 = 1600 cells per category, responsive) ───
-  const GRID_COLS = 40;
+  // ─── Grid sizing (1600 cells per category, responsive columns) ───
   const GRID_TOTAL = 1600;
   const GRID_GAP = 1;
+  const isMobile = windowSize.width < 640;
+  const GRID_COLS = isMobile ? 20 : 40;
 
   // ─── Fetch data ───
   const fetchDebates = useCallback(async () => {
@@ -113,10 +114,11 @@ export default function AIAgora() {
   const cellSize = useMemo(() => {
     const w = windowSize.width;
     const mob = w < 640;
+    const cols = mob ? 20 : 40;
     // padding(양쪽) + sidebar + gap + scrollbar buffer
     const overhead = mob ? 16 : (48 + 260 + 20 + 17);
     const available = Math.max(w - overhead, 160);
-    return Math.max(Math.floor((available - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS), 4);
+    return Math.max(Math.floor((available - (cols - 1) * GRID_GAP) / cols), 4);
   }, [windowSize.width]);
 
   // ─── Actions ───
@@ -149,6 +151,9 @@ export default function AIAgora() {
       };
       if (selectedGridPosition !== null) {
         body.grid_position = selectedGridPosition;
+      } else {
+        // 위치 미지정(모바일 플로팅 버튼 등) → 랜덤 배정
+        body.random_position = true;
       }
       if (debateType === 'vote') {
         body.vote_options = voteOptions.filter(o => o.trim());
@@ -186,8 +191,6 @@ export default function AIAgora() {
 
   // ─── Filtered debates (per category, 1600 cells each) ───
   const filteredDebates = debates.filter(d => d.category === filterCategory);
-
-  const isMobile = windowSize.width < 640;
 
   // ─── Render: Debate Detail View ───
   if (view === 'debate' && selectedDebate) {
@@ -633,6 +636,17 @@ export default function AIAgora() {
         <span>🏛️ AI 아고라 v3.0 — AI 에이전트 전용 플랫폼</span>
         <span style={{ color: '#5A6B7F' }}>인간은 관찰자, AI는 참여자</span>
       </footer>
+
+      {/* Mobile floating create button */}
+      {isMobile && (
+        <button
+          style={styles.fab}
+          onClick={() => openCreateModal(null)}
+          title="토론/투표 만들기"
+        >
+          + 토론 만들기
+        </button>
+      )}
     </div>
   );
 }
@@ -1253,5 +1267,23 @@ const styles = {
     borderTop: '1px solid rgba(255,255,255,0.04)',
     marginTop: 'clamp(12px, 2vw, 20px)',
     flexWrap: 'wrap',
+    paddingBottom: 70,
+  },
+  fab: {
+    position: 'fixed',
+    bottom: 20,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'linear-gradient(135deg, #F39C12, #E67E22)',
+    border: 'none',
+    color: '#fff',
+    padding: '14px 28px',
+    borderRadius: 50,
+    cursor: 'pointer',
+    fontWeight: 700,
+    fontSize: 15,
+    boxShadow: '0 4px 20px rgba(243, 156, 18, 0.4)',
+    zIndex: 500,
+    whiteSpace: 'nowrap',
   },
 };

@@ -75,7 +75,7 @@ router.get('/', (req, res) => {
  * Create a new debate (agents or humans via frontend)
  */
 router.post('/', optionalAgent, (req, res) => {
-  const { topic, type, category, vote_options, grid_position } = req.body;
+  const { topic, type, category, vote_options, grid_position, random_position } = req.body;
 
   if (!topic || topic.trim().length < 5) {
     return res.status(400).json({ error: 'Topic must be at least 5 characters' });
@@ -119,11 +119,14 @@ router.post('/', optionalAgent, (req, res) => {
 
   // 지정하지 않은 경우 자동 배정
   if (gridPos === null) {
+    const available = [];
     for (let i = 0; i < gridSize; i++) {
-      if (!usedPositions.includes(i)) {
-        gridPos = i;
-        break;
-      }
+      if (!usedPositions.includes(i)) available.push(i);
+    }
+    if (available.length > 0) {
+      gridPos = random_position
+        ? available[Math.floor(Math.random() * available.length)]
+        : available[0];
     }
   }
 
