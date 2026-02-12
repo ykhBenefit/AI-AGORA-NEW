@@ -63,13 +63,9 @@ export default function AIAgora() {
   // Polling ref
   const pollRef = useRef(null);
 
-  // ─── Grid sizing (40x40 = 1600 cells per category) ───
-  const getGridConfig = useCallback(() => {
-    const w = windowSize.width;
-    if (w < 640) return { cols: 40, size: 7, gap: 1 };
-    if (w < 1024) return { cols: 40, size: 12, gap: 1 };
-    return { cols: 40, size: 16, gap: 1 };
-  }, [windowSize.width]);
+  // ─── Grid sizing (40x40 = 1600 cells per category, responsive) ───
+  const GRID_COLS = 40;
+  const GRID_TOTAL = 1600;
 
   // ─── Fetch data ───
   const fetchDebates = useCallback(async () => {
@@ -180,8 +176,7 @@ export default function AIAgora() {
   // ─── Filtered debates (per category, 1600 cells each) ───
   const filteredDebates = debates.filter(d => d.category === filterCategory);
 
-  const gridConfig = getGridConfig();
-  const totalCells = 1600;
+  const isMobile = windowSize.width < 640;
 
   // ─── Render: Debate Detail View ───
   if (view === 'debate' && selectedDebate) {
@@ -357,7 +352,7 @@ export default function AIAgora() {
         </div>
       )}
 
-      <div style={styles.mainLayout}>
+      <div style={{ ...styles.mainLayout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '12px 8px' : '20px 24px' }}>
         {/* Grid */}
         <div style={styles.gridSection}>
           <div style={styles.gridInfo}>
@@ -370,10 +365,9 @@ export default function AIAgora() {
           </div>
           <div style={{
             ...styles.grid,
-            gridTemplateColumns: `repeat(${gridConfig.cols}, ${gridConfig.size}px)`,
-            gap: gridConfig.gap,
+            gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
           }}>
-            {Array.from({ length: totalCells }).map((_, i) => {
+            {Array.from({ length: GRID_TOTAL }).map((_, i) => {
               const debate = filteredDebates.find(d => d.grid_position === i);
               if (!debate) {
                 const isHovered = hoveredEmptyCell === i;
@@ -381,7 +375,7 @@ export default function AIAgora() {
                   <div
                     key={i}
                     style={{
-                      ...styles.emptyCell(gridConfig.size),
+                      ...styles.emptyCell,
                       ...(isHovered ? {
                         background: 'rgba(74, 144, 217, 0.15)',
                         border: '1px dashed rgba(74, 144, 217, 0.5)',
@@ -392,7 +386,7 @@ export default function AIAgora() {
                     onMouseLeave={() => setHoveredEmptyCell(null)}
                     title="클릭하여 토론/투표 만들기"
                   >
-                    {isHovered && <span style={{ fontSize: gridConfig.size > 22 ? 14 : 10, color: 'rgba(74,144,217,0.7)' }}>+</span>}
+                    {isHovered && <span style={styles.cellIcon}>+</span>}
                   </div>
                 );
               }
@@ -401,7 +395,7 @@ export default function AIAgora() {
                 <div
                   key={i}
                   style={{
-                    ...styles.activeCell(gridConfig.size),
+                    ...styles.activeCell,
                     background: getActivityColor(debate.activity_level, debate.type),
                     border: isBestDebate(debate) ? '2px solid gold' : '1px solid rgba(255,255,255,0.1)',
                   }}
@@ -413,10 +407,10 @@ export default function AIAgora() {
                   }}
                   onMouseLeave={() => setHoveredDebate(null)}
                 >
-                  <span style={{ fontSize: gridConfig.size > 22 ? 12 : 10 }}>
+                  <span style={styles.cellIcon}>
                     {typeStyle.icon}
                   </span>
-                  {isBestDebate(debate) && <span style={{ fontSize: 8, position: 'absolute', top: 0, right: 1 }}>⭐</span>}
+                  {isBestDebate(debate) && <span style={styles.bestStar}>⭐</span>}
                 </div>
               );
             })}
@@ -424,7 +418,7 @@ export default function AIAgora() {
         </div>
 
         {/* Sidebar */}
-        <div style={styles.sidebar}>
+        <div style={{ ...styles.sidebar, width: isMobile ? '100%' : 260 }}>
           {/* Stats */}
           <div style={styles.sideCard}>
             <h3 style={styles.sideTitle}>📊 플랫폼 현황</h3>
@@ -637,7 +631,7 @@ const styles = {
     padding: '0 0 40px 0',
   },
   header: {
-    padding: '20px 24px 12px',
+    padding: 'clamp(10px, 2vw, 20px) clamp(10px, 2.5vw, 24px) clamp(8px, 1.5vw, 12px)',
     borderBottom: '1px solid rgba(255,255,255,0.06)',
     background: 'rgba(0,0,0,0.3)',
     backdropFilter: 'blur(12px)',
@@ -655,7 +649,7 @@ const styles = {
   },
   logo: {
     margin: 0,
-    fontSize: 26,
+    fontSize: 'clamp(18px, 3vw, 26px)',
     fontWeight: 800,
     background: 'linear-gradient(135deg, #F39C12, #E74C3C, #9B59B6)',
     WebkitBackgroundClip: 'text',
@@ -664,7 +658,7 @@ const styles = {
   },
   subtitle: {
     margin: '2px 0 0',
-    fontSize: 12,
+    fontSize: 'clamp(10px, 1.5vw, 12px)',
     color: '#8B9DAF',
     letterSpacing: 0.5,
   },
@@ -678,10 +672,10 @@ const styles = {
     background: 'rgba(255,255,255,0.06)',
     border: '1px solid rgba(255,255,255,0.1)',
     color: '#C8D6E5',
-    padding: '6px 14px',
+    padding: 'clamp(4px, 0.8vw, 6px) clamp(8px, 1.5vw, 14px)',
     borderRadius: 8,
     cursor: 'pointer',
-    fontSize: 13,
+    fontSize: 'clamp(11px, 1.4vw, 13px)',
     textDecoration: 'none',
     transition: 'all 0.2s',
   },
@@ -692,12 +686,13 @@ const styles = {
   },
   searchInput: {
     flex: 1,
+    minWidth: 0,
     background: 'rgba(255,255,255,0.06)',
     border: '1px solid rgba(255,255,255,0.1)',
     color: '#E2E8F0',
-    padding: '8px 14px',
+    padding: 'clamp(6px, 1vw, 8px) clamp(8px, 1.5vw, 14px)',
     borderRadius: 8,
-    fontSize: 13,
+    fontSize: 'clamp(11px, 1.4vw, 13px)',
     outline: 'none',
   },
   searchBtn: {
@@ -718,65 +713,80 @@ const styles = {
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
     color: '#8B9DAF',
-    padding: '4px 10px',
+    padding: 'clamp(3px, 0.5vw, 4px) clamp(6px, 1vw, 10px)',
     borderRadius: 16,
     cursor: 'pointer',
-    fontSize: 12,
+    fontSize: 'clamp(10px, 1.3vw, 12px)',
+    whiteSpace: 'nowrap',
   },
   catFilterActive: {
     background: 'rgba(243, 156, 18, 0.2)',
     border: '1px solid rgba(243, 156, 18, 0.4)',
     color: '#F39C12',
-    padding: '4px 10px',
+    padding: 'clamp(3px, 0.5vw, 4px) clamp(6px, 1vw, 10px)',
     borderRadius: 16,
     cursor: 'pointer',
-    fontSize: 12,
+    fontSize: 'clamp(10px, 1.3vw, 12px)',
     fontWeight: 600,
+    whiteSpace: 'nowrap',
   },
   mainLayout: {
     display: 'flex',
-    gap: 20,
-    padding: '20px 24px',
+    gap: 'clamp(12px, 2vw, 20px)',
     flexWrap: 'wrap',
   },
   gridSection: {
     flex: 1,
-    minWidth: 280,
+    minWidth: 0,
   },
   gridInfo: {
     display: 'flex',
-    gap: 16,
-    marginBottom: 10,
-    fontSize: 12,
+    gap: 'clamp(8px, 1.5vw, 16px)',
+    marginBottom: 'clamp(6px, 1vw, 10px)',
+    fontSize: 'clamp(10px, 1.3vw, 12px)',
     color: '#8B9DAF',
+    flexWrap: 'wrap',
   },
   grid: {
     display: 'grid',
-    justifyContent: 'center',
+    width: '100%',
+    gap: 1,
   },
-  emptyCell: (size) => ({
-    width: size,
-    height: size,
-    borderRadius: 3,
+  emptyCell: {
+    aspectRatio: '1',
+    borderRadius: 2,
     background: 'rgba(255,255,255,0.02)',
     border: '1px solid rgba(255,255,255,0.03)',
     cursor: 'pointer',
-    transition: 'all 0.2s',
+    transition: 'all 0.15s',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  }),
-  activeCell: (size) => ({
-    width: size,
-    height: size,
-    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  activeCell: {
+    aspectRatio: '1',
+    borderRadius: 3,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
     position: 'relative',
-    transition: 'all 0.2s',
-  }),
+    transition: 'all 0.15s',
+    overflow: 'hidden',
+  },
+  cellIcon: {
+    fontSize: 'clamp(6px, 1.2vw, 13px)',
+    lineHeight: 1,
+    color: 'rgba(74,144,217,0.7)',
+  },
+  bestStar: {
+    fontSize: 'clamp(4px, 0.6vw, 8px)',
+    position: 'absolute',
+    top: 0,
+    right: 1,
+    lineHeight: 1,
+  },
   sidebar: {
     width: 260,
     display: 'flex',
@@ -841,7 +851,7 @@ const styles = {
   },
   // Detail views
   detailHeader: {
-    padding: '20px 24px',
+    padding: 'clamp(12px, 2vw, 20px) clamp(12px, 2.5vw, 24px)',
     borderBottom: '1px solid rgba(255,255,255,0.08)',
     background: 'rgba(0,0,0,0.3)',
   },
@@ -892,7 +902,7 @@ const styles = {
   },
   debateTopic: {
     margin: '0 0 10px',
-    fontSize: 22,
+    fontSize: 'clamp(16px, 2.5vw, 22px)',
     fontWeight: 800,
     color: '#F0F4F8',
     lineHeight: 1.3,
@@ -905,7 +915,7 @@ const styles = {
     flexWrap: 'wrap',
   },
   messagesContainer: {
-    padding: '20px 24px',
+    padding: 'clamp(12px, 2vw, 20px) clamp(10px, 2.5vw, 24px)',
     maxWidth: 720,
     margin: '0 auto',
   },
@@ -961,18 +971,18 @@ const styles = {
   },
   observerNotice: {
     textAlign: 'center',
-    padding: '14px 20px',
+    padding: 'clamp(10px, 1.5vw, 14px) clamp(12px, 2vw, 20px)',
     background: 'rgba(52, 152, 219, 0.1)',
     border: '1px solid rgba(52, 152, 219, 0.2)',
     borderRadius: 12,
     color: '#3498DB',
-    fontSize: 13,
-    margin: '0 24px',
+    fontSize: 'clamp(11px, 1.4vw, 13px)',
+    margin: '0 clamp(10px, 2.5vw, 24px)',
     fontWeight: 500,
   },
   // Vote view
   voteContainer: {
-    padding: '20px 24px',
+    padding: 'clamp(12px, 2vw, 20px) clamp(10px, 2.5vw, 24px)',
     maxWidth: 600,
     margin: '0 auto',
   },
@@ -1014,16 +1024,16 @@ const styles = {
     justifyContent: 'center',
     zIndex: 1000,
     backdropFilter: 'blur(4px)',
-    padding: 20,
+    padding: 'clamp(8px, 2vw, 20px)',
   },
   modal: {
     background: '#1A2332',
     border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    padding: 28,
+    borderRadius: 'clamp(10px, 1.5vw, 16px)',
+    padding: 'clamp(16px, 3vw, 28px)',
     width: '100%',
     maxWidth: 480,
-    maxHeight: '85vh',
+    maxHeight: '90vh',
     overflow: 'auto',
   },
   modalTitle: {
@@ -1230,14 +1240,14 @@ const styles = {
   },
   footer: {
     textAlign: 'center',
-    padding: '20px 24px',
-    fontSize: 12,
+    padding: 'clamp(12px, 2vw, 20px) clamp(10px, 2.5vw, 24px)',
+    fontSize: 'clamp(10px, 1.3vw, 12px)',
     color: '#5A6B7F',
     display: 'flex',
     justifyContent: 'center',
-    gap: 16,
+    gap: 'clamp(8px, 1.5vw, 16px)',
     borderTop: '1px solid rgba(255,255,255,0.04)',
-    marginTop: 20,
+    marginTop: 'clamp(12px, 2vw, 20px)',
     flexWrap: 'wrap',
   },
 };
