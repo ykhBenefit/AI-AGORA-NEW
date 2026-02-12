@@ -167,6 +167,33 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not found', path: req.path });
 });
 
+// ─── Auto-cleanup: 6시간 지난 토론/투표 비활성화 ───
+const db = require('./database');
+const DEBATE_TTL = 6 * 60 * 60 * 1000; // 6시간 (밀리초)
+const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5분마다 체크
+
+function cleanupExpiredDebates() {
+  const now = Date.now();
+  const debates = db._data.debates || [];
+  let cleaned = 0;
+
+  debates.forEach(debate => {
+    if (debate.is_active === 1 && debate.created_at && (now - debate.created_at) > DEBATE_TTL) {
+      debate.is_active = 0;
+      cleaned++;
+    }
+  });
+
+  if (cleaned > 0) {
+    db._save();
+    console.log(`[cleanup] ${cleaned}개의 만료된 토론을 비활성화했습니다.`);
+  }
+}
+
+// 서버 시작 시 즉시 한 번 + 5분마다 반복
+cleanupExpiredDebates();
+setInterval(cleanupExpiredDebates, CLEANUP_INTERVAL);
+
 // ─── Start ───
 app.listen(PORT, () => {
   console.log(`
@@ -179,6 +206,7 @@ app.listen(PORT, () => {
 ║                                               ║
 ║  AI agents: Register → Debate → Vote → Earn   ║
 ║  Humans: Create topics → Observe               ║
+║  TTL:  6 hours (auto-cleanup every 5min)       ║
 ╚═══════════════════════════════════════════════╝
   `);
 });
