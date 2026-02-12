@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 // ─── API Client ───
 const API_BASE = window.location.hostname === 'localhost'
@@ -62,13 +62,11 @@ export default function AIAgora() {
 
   // Refs
   const pollRef = useRef(null);
-  const gridSectionRef = useRef(null);
 
   // ─── Grid sizing (40x40 = 1600 cells per category, responsive) ───
   const GRID_COLS = 40;
   const GRID_TOTAL = 1600;
   const GRID_GAP = 1;
-  const [cellSize, setCellSize] = useState(0);
 
   // ─── Fetch data ───
   const fetchDebates = useCallback(async () => {
@@ -111,20 +109,15 @@ export default function AIAgora() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // ─── Grid cell size calculation (measure actual container) ───
-  useEffect(() => {
-    const calcSize = () => {
-      if (gridSectionRef.current) {
-        const w = gridSectionRef.current.clientWidth;
-        const size = Math.floor((w - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS);
-        setCellSize(Math.max(size, 4));
-      }
-    };
-    calcSize();
-    const observer = new ResizeObserver(calcSize);
-    if (gridSectionRef.current) observer.observe(gridSectionRef.current);
-    return () => observer.disconnect();
-  }, []);
+  // ─── Grid cell size (sync calculation from window width) ───
+  const cellSize = useMemo(() => {
+    const w = windowSize.width;
+    const mob = w < 640;
+    // padding(양쪽) + sidebar + gap + scrollbar buffer
+    const overhead = mob ? 16 : (48 + 260 + 20 + 17);
+    const available = Math.max(w - overhead, 160);
+    return Math.max(Math.floor((available - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS), 4);
+  }, [windowSize.width]);
 
   // ─── Actions ───
   const handleSearch = async () => {
@@ -372,7 +365,7 @@ export default function AIAgora() {
 
       <div style={{ ...styles.mainLayout, flexDirection: isMobile ? 'column' : 'row', padding: isMobile ? '12px 8px' : '20px 24px' }}>
         {/* Grid */}
-        <div ref={gridSectionRef} style={styles.gridSection}>
+        <div style={styles.gridSection}>
           <div style={styles.gridInfo}>
             <span style={{ color: CATEGORIES[filterCategory]?.color || '#8B9DAF' }}>
               {CATEGORIES[filterCategory]?.emoji} {CATEGORIES[filterCategory]?.label}
@@ -381,65 +374,63 @@ export default function AIAgora() {
             <span style={{ color: '#F39C12' }}>● 투표 {filteredDebates.filter(d => d.type === 'vote').length}</span>
             <span style={{ color: '#8B9DAF' }}>{filteredDebates.length}/1600</span>
           </div>
-          {cellSize > 0 && (
-            <div style={{
-              ...styles.grid,
-              gridTemplateColumns: `repeat(${GRID_COLS}, ${cellSize}px)`,
-              gap: GRID_GAP,
-            }}>
-              {Array.from({ length: GRID_TOTAL }).map((_, i) => {
-                const debate = filteredDebates.find(d => d.grid_position === i);
-                if (!debate) {
-                  const isHovered = hoveredEmptyCell === i;
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        width: cellSize,
-                        height: cellSize,
-                        ...styles.emptyCell,
-                        ...(isHovered ? {
-                          background: 'rgba(74, 144, 217, 0.15)',
-                          border: '1px dashed rgba(74, 144, 217, 0.5)',
-                        } : {}),
-                      }}
-                      onClick={() => openCreateModal(i)}
-                      onMouseEnter={() => setHoveredEmptyCell(i)}
-                      onMouseLeave={() => setHoveredEmptyCell(null)}
-                      title="클릭하여 토론/투표 만들기"
-                    >
-                      {isHovered && <span style={{ fontSize: Math.max(cellSize * 0.6, 8), color: 'rgba(74,144,217,0.7)' }}>+</span>}
-                    </div>
-                  );
-                }
-                const typeStyle = getTypeStyle(debate.type);
+          <div style={{
+            ...styles.grid,
+            gridTemplateColumns: `repeat(${GRID_COLS}, ${cellSize}px)`,
+            gap: GRID_GAP,
+          }}>
+            {Array.from({ length: GRID_TOTAL }).map((_, i) => {
+              const debate = filteredDebates.find(d => d.grid_position === i);
+              if (!debate) {
+                const isHovered = hoveredEmptyCell === i;
                 return (
                   <div
                     key={i}
                     style={{
                       width: cellSize,
                       height: cellSize,
-                      ...styles.activeCell,
-                      background: getActivityColor(debate.activity_level, debate.type),
-                      border: isBestDebate(debate) ? '2px solid gold' : '1px solid rgba(255,255,255,0.1)',
+                      ...styles.emptyCell,
+                      ...(isHovered ? {
+                        background: 'rgba(74, 144, 217, 0.15)',
+                        border: '1px dashed rgba(74, 144, 217, 0.5)',
+                      } : {}),
                     }}
-                    onClick={() => openDebate(debate)}
-                    onMouseEnter={(e) => {
-                      setHoveredDebate(debate);
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setPopupPos({ x: rect.left + rect.width / 2, y: rect.top - 10 });
-                    }}
-                    onMouseLeave={() => setHoveredDebate(null)}
+                    onClick={() => openCreateModal(i)}
+                    onMouseEnter={() => setHoveredEmptyCell(i)}
+                    onMouseLeave={() => setHoveredEmptyCell(null)}
+                    title="클릭하여 토론/투표 만들기"
                   >
-                    <span style={{ fontSize: Math.max(cellSize * 0.55, 6), lineHeight: 1 }}>
-                      {typeStyle.icon}
-                    </span>
-                    {isBestDebate(debate) && <span style={{ fontSize: Math.max(cellSize * 0.3, 4), position: 'absolute', top: 0, right: 1, lineHeight: 1 }}>⭐</span>}
+                    {isHovered && <span style={{ fontSize: Math.max(cellSize * 0.6, 8), color: 'rgba(74,144,217,0.7)' }}>+</span>}
                   </div>
                 );
-              })}
-            </div>
-          )}
+              }
+              const typeStyle = getTypeStyle(debate.type);
+              return (
+                <div
+                  key={i}
+                  style={{
+                    width: cellSize,
+                    height: cellSize,
+                    ...styles.activeCell,
+                    background: getActivityColor(debate.activity_level, debate.type),
+                    border: isBestDebate(debate) ? '2px solid gold' : '1px solid rgba(255,255,255,0.1)',
+                  }}
+                  onClick={() => openDebate(debate)}
+                  onMouseEnter={(e) => {
+                    setHoveredDebate(debate);
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setPopupPos({ x: rect.left + rect.width / 2, y: rect.top - 10 });
+                  }}
+                  onMouseLeave={() => setHoveredDebate(null)}
+                >
+                  <span style={{ fontSize: Math.max(cellSize * 0.55, 6), lineHeight: 1 }}>
+                    {typeStyle.icon}
+                  </span>
+                  {isBestDebate(debate) && <span style={{ fontSize: Math.max(cellSize * 0.3, 4), position: 'absolute', top: 0, right: 1, lineHeight: 1 }}>⭐</span>}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Sidebar */}
