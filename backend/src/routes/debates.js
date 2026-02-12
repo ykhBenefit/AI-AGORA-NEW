@@ -98,12 +98,13 @@ router.post('/', optionalAgent, (req, res) => {
     }
   }
 
-  // Find available grid position
+  // Find available grid position (per category)
   const usedPositions = db.prepare(
-    'SELECT grid_position FROM debates WHERE is_active = 1 AND grid_position IS NOT NULL'
+    'SELECT grid_position FROM debates WHERE is_active = 1 AND category = ? AND grid_position IS NOT NULL',
+    [category]
   ).all().map(r => r.grid_position);
 
-  const gridSize = parseInt(process.env.DEFAULT_GRID_SIZE) || 400;
+  const gridSize = parseInt(process.env.DEFAULT_GRID_SIZE) || 1600;
   let gridPos = null;
 
   // 클라이언트가 grid_position을 지정한 경우 해당 위치 사용

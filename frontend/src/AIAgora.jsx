@@ -46,7 +46,7 @@ export default function AIAgora() {
   const [hoveredEmptyCell, setHoveredEmptyCell] = useState(null);
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
-  const [filterCategory, setFilterCategory] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('general');
 
   // Create debate
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -63,12 +63,12 @@ export default function AIAgora() {
   // Polling ref
   const pollRef = useRef(null);
 
-  // ─── Grid sizing ───
+  // ─── Grid sizing (40x40 = 1600 cells per category) ───
   const getGridConfig = useCallback(() => {
     const w = windowSize.width;
-    if (w < 640) return { cols: 10, size: 28, gap: 2 };
-    if (w < 1024) return { cols: 20, size: 24, gap: 2 };
-    return { cols: 30, size: 20, gap: 2 };
+    if (w < 640) return { cols: 40, size: 7, gap: 1 };
+    if (w < 1024) return { cols: 40, size: 12, gap: 1 };
+    return { cols: 40, size: 16, gap: 1 };
   }, [windowSize.width]);
 
   // ─── Fetch data ───
@@ -123,6 +123,7 @@ export default function AIAgora() {
 
   const openCreateModal = (gridPosition = null) => {
     setSelectedGridPosition(gridPosition);
+    setSelectedCategory(filterCategory);
     setShowCreateModal(true);
   };
 
@@ -176,13 +177,11 @@ export default function AIAgora() {
 
   const isBestDebate = (d) => d.upvotes >= 30 && d.message_count >= 50 && d.activity_level >= 8;
 
-  // ─── Filtered debates ───
-  const filteredDebates = filterCategory
-    ? debates.filter(d => d.category === filterCategory)
-    : debates;
+  // ─── Filtered debates (per category, 1600 cells each) ───
+  const filteredDebates = debates.filter(d => d.category === filterCategory);
 
   const gridConfig = getGridConfig();
-  const totalCells = gridConfig.cols * gridConfig.cols;
+  const totalCells = 1600;
 
   // ─── Render: Debate Detail View ───
   if (view === 'debate' && selectedDebate) {
@@ -327,10 +326,6 @@ export default function AIAgora() {
 
         {/* Category filters */}
         <div style={styles.categoryFilters}>
-          <button
-            style={filterCategory === null ? styles.catFilterActive : styles.catFilter}
-            onClick={() => setFilterCategory(null)}
-          >전체</button>
           {Object.entries(CATEGORIES).map(([key, cat]) => (
             <button
               key={key}
@@ -366,9 +361,12 @@ export default function AIAgora() {
         {/* Grid */}
         <div style={styles.gridSection}>
           <div style={styles.gridInfo}>
-            <span style={{ color: '#2ECC71' }}>● 토론 {debates.filter(d => d.type === 'debate').length}</span>
-            <span style={{ color: '#F39C12' }}>● 투표 {debates.filter(d => d.type === 'vote').length}</span>
-            <span style={{ color: '#8B9DAF' }}>총 {debates.length}개 활성</span>
+            <span style={{ color: CATEGORIES[filterCategory]?.color || '#8B9DAF' }}>
+              {CATEGORIES[filterCategory]?.emoji} {CATEGORIES[filterCategory]?.label}
+            </span>
+            <span style={{ color: '#2ECC71' }}>● 토론 {filteredDebates.filter(d => d.type === 'debate').length}</span>
+            <span style={{ color: '#F39C12' }}>● 투표 {filteredDebates.filter(d => d.type === 'vote').length}</span>
+            <span style={{ color: '#8B9DAF' }}>{filteredDebates.length}/1600</span>
           </div>
           <div style={{
             ...styles.grid,
@@ -526,15 +524,22 @@ export default function AIAgora() {
             </div>
 
             <label style={styles.label}>카테고리</label>
-            <div style={styles.catSelector}>
-              {Object.entries(CATEGORIES).map(([key, cat]) => (
-                <button
-                  key={key}
-                  style={selectedCategory === key ? styles.catActive : styles.catBtn}
-                  onClick={() => setSelectedCategory(key)}
-                >{cat.emoji} {cat.label}</button>
-              ))}
-            </div>
+            {selectedGridPosition !== null ? (
+              <div style={{ ...styles.catActive, display: 'inline-block', cursor: 'default' }}>
+                {CATEGORIES[selectedCategory]?.emoji} {CATEGORIES[selectedCategory]?.label}
+                <span style={{ color: '#8B9DAF', fontSize: 11, marginLeft: 8 }}>📍 그리드 #{selectedGridPosition}</span>
+              </div>
+            ) : (
+              <div style={styles.catSelector}>
+                {Object.entries(CATEGORIES).map(([key, cat]) => (
+                  <button
+                    key={key}
+                    style={selectedCategory === key ? styles.catActive : styles.catBtn}
+                    onClick={() => setSelectedCategory(key)}
+                  >{cat.emoji} {cat.label}</button>
+                ))}
+              </div>
+            )}
 
             {debateType === 'vote' && (
               <>
