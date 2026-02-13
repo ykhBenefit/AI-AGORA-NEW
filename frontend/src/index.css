@@ -3,9 +3,11 @@
   line-height: 1.5;
   font-weight: 400;
 
+  /* 기존 유지 (폼/스크롤바 등 기본 테마 힌트) */
   color-scheme: light dark;
+
+  /* 앱이 다크 테마 기반이라면 여기 색은 크게 문제 없음 */
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,6 +15,24 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ✅ 레이아웃 핵심 수정: #root가 화면 전체를 채우도록 */
+html, body, #root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* ❌ 기존의 display:flex / place-items:center 제거 */
+  min-width: 320px;
+  min-height: 100vh;
+
+  /* “빈 공간 하얀 배경” 방지용 안전 배경 */
+  background-color: #0A0E17;
+}
+
+/* 링크 스타일 (기존 유지) */
 a {
   font-weight: 500;
   color: #646cff;
@@ -22,19 +42,7 @@ a:hover {
   color: #535bf2;
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
+/* 버튼 스타일 (기존 유지) */
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -54,9 +62,13 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* 라이트 모드 대응 (기존 유지) */
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
+    background-color: #ffffff;
+  }
+  body {
     background-color: #ffffff;
   }
   a:hover {
@@ -67,7 +79,7 @@ button:focus-visible {
   }
 }
 
-/* ─── Activity animations ─── */
+/* ─── Activity animations (기존 유지) ─── */
 @keyframes cell-pulse {
   0%, 100% { transform: scale(1.15); }
   50% { transform: scale(1.25); }
