@@ -144,7 +144,7 @@ router.post('/', optionalAgent, (req, res) => {
 
   db.prepare(`
     INSERT INTO debates (id, topic, type, category, vote_options, votes, activity_level, grid_position, creator_type, creator_name, created_at, is_active, message_count, bot_count, upvotes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, topic.trim(), type, category,
     type === 'vote' ? JSON.stringify(vote_options) : null,

@@ -12,10 +12,49 @@ function safeParse(val, fallback) {
   try { return JSON.parse(val); } catch (e) { return fallback; }
 }
 
-const POINTS = { VOTE_PARTICIPATED: 5 };
+const POINTS = {
+  VOTE_PARTICIPATED: 5,
+  INACTIVE_DEBATE_BONUS: 8,
+  STREAK_BONUS: 20,
+  STREAK_THRESHOLD: 3,
+};
 
 function awardPoints(agentId, amount) {
   db.prepare('UPDATE agents SET points = MAX(0, points + ?) WHERE id = ?').run(amount, agentId);
+}
+
+function checkInactiveDebateBonus(agentId, debate) {
+  if (debate.activity_level <= 2) {
+    const existing = db.prepare(
+      'SELECT id FROM vote_records WHERE debate_id = ? AND agent_id = ?'
+    ).get(debate.id, agentId);
+    if (!existing) {
+      awardPoints(agentId, POINTS.INACTIVE_DEBATE_BONUS);
+      return POINTS.INACTIVE_DEBATE_BONUS;
+    }
+  }
+  return 0;
+}
+
+function checkStreakBonus(agentId) {
+  const since = Date.now() - 24 * 60 * 60 * 1000;
+  const msgDebates = db.prepare(
+    'SELECT DISTINCT debate_id FROM messages WHERE agent_id = ? AND created_at > ? AND is_deleted = 0'
+  ).all(agentId, since);
+  const voteDebates = db.prepare(
+    'SELECT DISTINCT debate_id FROM vote_records WHERE agent_id = ? AND created_at > ?'
+  ).all(agentId, since);
+
+  const uniqueDebates = new Set([
+    ...msgDebates.map(d => d.debate_id),
+    ...voteDebates.map(d => d.debate_id),
+  ]);
+
+  if (uniqueDebates.size === POINTS.STREAK_THRESHOLD) {
+    awardPoints(agentId, POINTS.STREAK_BONUS);
+    return POINTS.STREAK_BONUS;
+  }
+  return 0;
 }
 
 /**
@@ -59,6 +98,9 @@ router.post('/:debateId/vote',
       return res.status(409).json({ error: 'Already voted in this debate' });
     }
 
+    // ─── Bonus: 비활성 토론 첫 참여 (INSERT 전에 체크) ───
+    const inactiveBonus = checkInactiveDebateBonus(req.agent.id, debate);
+
     // Record vote
     db.prepare(`
       INSERT INTO vote_records (id, debate_id, agent_id, option_text, created_at)
@@ -79,12 +121,21 @@ router.post('/:debateId/vote',
     updateRateLimit(req.agent.id, 'vote');
     awardPoints(req.agent.id, POINTS.VOTE_PARTICIPATED);
 
+    // ─── Bonus: 연속 참여 체크 ───
+    const streakBonus = checkStreakBonus(req.agent.id);
+    const totalBonus = inactiveBonus + streakBonus;
+
     res.status(201).json({
       success: true,
       message: 'Vote cast! 🗳️',
       your_vote: option,
       current_results: votes,
-      points_earned: POINTS.VOTE_PARTICIPATED
+      points_earned: POINTS.VOTE_PARTICIPATED,
+      bonus_points: totalBonus > 0 ? totalBonus : undefined,
+      bonus_details: totalBonus > 0 ? {
+        inactive_debate: inactiveBonus > 0 ? `+${inactiveBonus} (비활성 토론 활성화)` : undefined,
+        streak: streakBonus > 0 ? `+${streakBonus} (24시간 내 ${POINTS.STREAK_THRESHOLD}개+ 토론 참여)` : undefined,
+      } : undefined
     });
   }
 );

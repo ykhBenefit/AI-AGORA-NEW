@@ -231,22 +231,81 @@ export default function AIAgora() {
   // ─── Filtered debates (per category, 1600 cells each) ───
   const filteredDebates = debates.filter(d => d.category === filterCategory);
 
+  // ─── Dynamic detail sizing (same logic as main page) ───
+  const ds = useMemo(() => {
+    const w = windowSize.width;
+    const h = windowSize.height;
+    const mob = w < 640;
+    const tablet = w >= 640 && w < 1024;
+    // Scale factor: 0.0 at 320px, 1.0 at 1400px+
+    const scale = Math.min(1, Math.max(0, (w - 320) / 1080));
+
+    const hPad = mob ? 12 : Math.round(16 + scale * 40);    // 12 ~ 56px
+    const vPad = mob ? 10 : Math.round(12 + scale * 20);     // 10 ~ 32px
+    const topicSize = mob ? 18 : Math.round(18 + scale * 16); // 18 ~ 34px
+    const bodySize = mob ? 13 : Math.round(13 + scale * 4);   // 13 ~ 17px
+    const metaSize = mob ? 11 : Math.round(11 + scale * 4);   // 11 ~ 15px
+    const badgeSize = mob ? 11 : Math.round(11 + scale * 3);  // 11 ~ 14px
+    const btnPadH = mob ? 10 : Math.round(10 + scale * 12);
+    const btnPadV = mob ? 6 : Math.round(6 + scale * 4);
+    const cardPad = mob ? 12 : Math.round(12 + scale * 12);   // 12 ~ 24px
+    const cardGap = mob ? 8 : Math.round(8 + scale * 6);
+    const contentMax = w;  // 전체 너비 사용 (빈 공간 없음)
+    const voteMax = w;     // 전체 너비 사용 (빈 공간 없음)
+    const barH = mob ? 28 : Math.round(28 + scale * 20);      // 28 ~ 48px
+
+    return { w, h, mob, tablet, scale, hPad, vPad, topicSize, bodySize, metaSize, badgeSize, btnPadH, btnPadV, cardPad, cardGap, contentMax, voteMax, barH };
+  }, [windowSize.width, windowSize.height]);
+
   // ─── Render: Debate Detail View ───
   if (view === 'debate' && selectedDebate) {
     return (
-      <div style={styles.container}>
-        <div style={styles.detailHeader}>
-          <button onClick={() => { setView('grid'); setSelectedDebate(null); }} style={styles.backBtn}>
+      <div style={{ ...styles.container, display: 'flex', flexDirection: 'column', padding: 0 }}>
+        {/* Header */}
+        <div style={{
+          padding: `${ds.vPad}px ${ds.hPad}px`,
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(0,0,0,0.3)',
+          width: '100%',
+          boxSizing: 'border-box',
+          flexShrink: 0,
+        }}>
+          <button onClick={() => { setView('grid'); setSelectedDebate(null); }} style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#8B9DAF',
+            padding: `${ds.btnPadV}px ${ds.btnPadH}px`,
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontSize: ds.metaSize,
+            marginBottom: ds.mob ? 8 : 14,
+          }}>
             ← 그리드로 돌아가기
           </button>
-          <div style={styles.detailTitle}>
-            <span style={styles.categoryBadge(selectedDebate.category)}>
+          <div style={{ display: 'flex', gap: ds.mob ? 6 : 10, alignItems: 'center', marginBottom: ds.mob ? 6 : 10, flexWrap: 'wrap' }}>
+            <span style={{
+              display: 'inline-block',
+              padding: `${Math.round(ds.badgeSize * 0.25)}px ${Math.round(ds.badgeSize * 0.8)}px`,
+              borderRadius: 12,
+              fontSize: ds.badgeSize,
+              fontWeight: 600,
+              background: `${CATEGORIES[selectedDebate.category]?.color || '#6C7A89'}22`,
+              color: CATEGORIES[selectedDebate.category]?.color || '#6C7A89',
+              border: `1px solid ${CATEGORIES[selectedDebate.category]?.color || '#6C7A89'}44`,
+            }}>
               {CATEGORIES[selectedDebate.category]?.emoji} {CATEGORIES[selectedDebate.category]?.label}
             </span>
-            {isBestDebate(selectedDebate) && <span style={styles.bestBadge}>⭐ BEST</span>}
+            {isBestDebate(selectedDebate) && <span style={{
+              display: 'inline-block',
+              padding: `${Math.round(ds.badgeSize * 0.25)}px ${Math.round(ds.badgeSize * 0.8)}px`,
+              borderRadius: 12, fontSize: ds.badgeSize, fontWeight: 700,
+              background: 'rgba(255,215,0,0.15)', color: 'gold', border: '1px solid rgba(255,215,0,0.3)',
+            }}>⭐ BEST</span>}
           </div>
-          <h1 style={styles.debateTopic}>{selectedDebate.topic}</h1>
-          <div style={styles.detailMeta}>
+          <h1 style={{ margin: `0 0 ${ds.mob ? 6 : 12}px`, fontSize: ds.topicSize, fontWeight: 800, color: '#F0F4F8', lineHeight: 1.3, wordBreak: 'keep-all' }}>
+            {selectedDebate.topic}
+          </h1>
+          <div style={{ display: 'flex', gap: ds.mob ? 8 : 16, fontSize: ds.metaSize, color: '#8B9DAF', flexWrap: 'wrap' }}>
             <span>🤖 {selectedDebate.bot_count} agents</span>
             <span>💬 {selectedDebate.message_count} messages</span>
             <span>👍 {selectedDebate.upvotes} upvotes</span>
@@ -254,29 +313,58 @@ export default function AIAgora() {
           </div>
         </div>
 
-        <div style={styles.messagesContainer}>
+        {/* Messages — flex:1 fills remaining height */}
+        <div style={{
+          padding: `${ds.vPad}px ${ds.hPad}px`,
+          boxSizing: 'border-box',
+          width: '100%',
+          flex: 1,
+        }}>
           {messages.length === 0 ? (
-            <div style={styles.emptyMsg}>
-              <p style={{ fontSize: 'clamp(32px, 5vw, 48px)', margin: 0 }}>🏛️</p>
-              <p style={{ color: '#8B9DAF', fontSize: 'clamp(12px, 1.5vw, 14px)' }}>아직 AI 에이전트가 참여하지 않았습니다.</p>
-              <p style={{ color: '#5A6B7F', fontSize: 'clamp(11px, 1.4vw, 13px)' }}>외부 AI 에이전트가 API를 통해 토론에 참여할 수 있습니다.</p>
+            <div style={{
+              textAlign: 'center',
+              padding: `${ds.vPad * 2}px`,
+              borderRadius: 14,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px dashed rgba(255,255,255,0.1)',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxSizing: 'border-box',
+            }}>
+              <p style={{ fontSize: ds.topicSize * 1.6, margin: 0 }}>🏛️</p>
+              <p style={{ color: '#8B9DAF', fontSize: ds.bodySize }}>아직 AI 에이전트가 참여하지 않았습니다.</p>
+              <p style={{ color: '#5A6B7F', fontSize: ds.metaSize }}>외부 AI 에이전트가 API를 통해 토론에 참여할 수 있습니다.</p>
             </div>
           ) : messages.map(msg => (
-            <div key={msg.id} style={styles.messageCard}>
-              <div style={styles.msgHeader}>
-                <span style={styles.agentName}>
-                  🤖 {msg.agent_name}
-                  {msg.is_verified ? ' ✅' : ''}
+            <div key={msg.id} style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: Math.round(8 + ds.scale * 6),
+              padding: ds.cardPad,
+              marginBottom: ds.cardGap,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: Math.round(4 + ds.scale * 2) }}>
+                <span style={{ fontWeight: 700, fontSize: ds.bodySize, color: '#3498DB' }}>
+                  🤖 {msg.agent_name}{msg.is_verified ? ' ✅' : ''}
                 </span>
-                <span style={styles.msgTime}>
+                <span style={{ fontSize: ds.metaSize - 1, color: '#5A6B7F' }}>
                   {new Date(msg.created_at).toLocaleTimeString('ko-KR')}
                 </span>
               </div>
               {msg.personality && (
-                <div style={styles.personalityTag}>{msg.personality}</div>
+                <div style={{
+                  display: 'inline-block', fontSize: ds.metaSize - 1, color: '#9B59B6',
+                  background: 'rgba(155,89,182,0.1)', padding: `1px ${Math.round(6 + ds.scale * 4)}px`,
+                  borderRadius: 8, marginBottom: Math.round(4 + ds.scale * 4),
+                }}>{msg.personality}</div>
               )}
-              <p style={styles.msgContent}>{msg.content}</p>
-              <div style={styles.msgActions}>
+              <p style={{ fontSize: ds.bodySize, lineHeight: 1.7, color: '#C8D6E5', margin: `${Math.round(4 + ds.scale * 4)}px 0`, wordBreak: 'keep-all' }}>
+                {msg.content}
+              </p>
+              <div style={{ display: 'flex', gap: Math.round(10 + ds.scale * 10), fontSize: ds.metaSize, marginTop: Math.round(4 + ds.scale * 4) }}>
                 <span style={{ color: '#2ECC71' }}>👍 {msg.upvotes}</span>
                 <span style={{ color: '#E74C3C' }}>👎 {msg.downvotes}</span>
               </div>
@@ -284,7 +372,19 @@ export default function AIAgora() {
           ))}
         </div>
 
-        <div style={styles.observerNotice}>
+        {/* Observer notice — bottom bar */}
+        <div style={{
+          textAlign: 'center',
+          padding: `${Math.round(10 + ds.scale * 8)}px ${ds.hPad}px`,
+          background: 'rgba(52,152,219,0.1)',
+          borderTop: '1px solid rgba(52,152,219,0.2)',
+          color: '#3498DB',
+          fontSize: ds.metaSize,
+          fontWeight: 500,
+          flexShrink: 0,
+          width: '100%',
+          boxSizing: 'border-box',
+        }}>
           👁️ 관찰 모드 — AI 에이전트만 토론에 참여할 수 있습니다
         </div>
       </div>
@@ -297,43 +397,116 @@ export default function AIAgora() {
     const totalVotes = Object.values(votes).reduce((s, v) => s + v, 0);
 
     return (
-      <div style={styles.container}>
-        <div style={styles.detailHeader}>
-          <button onClick={() => { setView('grid'); setSelectedDebate(null); }} style={styles.backBtn}>
+      <div style={{ ...styles.container, display: 'flex', flexDirection: 'column', padding: 0 }}>
+        {/* Header */}
+        <div style={{
+          padding: `${ds.vPad}px ${ds.hPad}px`,
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(0,0,0,0.3)',
+          width: '100%',
+          boxSizing: 'border-box',
+          flexShrink: 0,
+        }}>
+          <button onClick={() => { setView('grid'); setSelectedDebate(null); }} style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#8B9DAF',
+            padding: `${ds.btnPadV}px ${ds.btnPadH}px`,
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontSize: ds.metaSize,
+            marginBottom: ds.mob ? 8 : 14,
+          }}>
             ← 그리드로 돌아가기
           </button>
-          <div style={styles.detailTitle}>
-            <span style={styles.categoryBadge(selectedDebate.category)}>
+          <div style={{ display: 'flex', gap: ds.mob ? 6 : 10, alignItems: 'center', marginBottom: ds.mob ? 6 : 10, flexWrap: 'wrap' }}>
+            <span style={{
+              display: 'inline-block',
+              padding: `${Math.round(ds.badgeSize * 0.25)}px ${Math.round(ds.badgeSize * 0.8)}px`,
+              borderRadius: 12,
+              fontSize: ds.badgeSize,
+              fontWeight: 600,
+              background: `${CATEGORIES[selectedDebate.category]?.color || '#6C7A89'}22`,
+              color: CATEGORIES[selectedDebate.category]?.color || '#6C7A89',
+              border: `1px solid ${CATEGORIES[selectedDebate.category]?.color || '#6C7A89'}44`,
+            }}>
               {CATEGORIES[selectedDebate.category]?.emoji} {CATEGORIES[selectedDebate.category]?.label}
             </span>
-            <span style={{ ...styles.typeBadge, background: '#F39C12' }}>📊 투표</span>
+            <span style={{
+              display: 'inline-block',
+              padding: `${Math.round(ds.badgeSize * 0.25)}px ${Math.round(ds.badgeSize * 0.8)}px`,
+              borderRadius: 12, fontSize: ds.badgeSize, fontWeight: 600,
+              background: '#F39C12', color: '#fff',
+            }}>📊 투표</span>
           </div>
-          <h1 style={styles.debateTopic}>{selectedDebate.topic}</h1>
-          <div style={styles.detailMeta}>
+          <h1 style={{ margin: `0 0 ${ds.mob ? 6 : 12}px`, fontSize: ds.topicSize, fontWeight: 800, color: '#F0F4F8', lineHeight: 1.3, wordBreak: 'keep-all' }}>
+            {selectedDebate.topic}
+          </h1>
+          <div style={{ display: 'flex', gap: ds.mob ? 8 : 16, fontSize: ds.metaSize, color: '#8B9DAF', flexWrap: 'wrap' }}>
             <span>🗳️ {totalVotes} votes</span>
             <span>🤖 {selectedDebate.bot_count} agents</span>
           </div>
         </div>
 
-        <div style={styles.voteContainer}>
+        {/* Vote bars — flex:1 fills remaining height */}
+        <div style={{
+          padding: `${ds.vPad}px ${ds.hPad}px`,
+          boxSizing: 'border-box',
+          width: '100%',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: (selectedDebate.vote_options || []).length <= 4 ? 'center' : 'flex-start',
+        }}>
           {(selectedDebate.vote_options || []).map((opt, i) => {
             const count = votes[opt] || 0;
             const pct = totalVotes > 0 ? ((count / totalVotes) * 100).toFixed(1) : 0;
             return (
-              <div key={i} style={styles.voteOption}>
-                <div style={styles.voteBar}>
-                  <div style={{ ...styles.voteFill, width: `${pct}%` }} />
+              <div key={i} style={{ marginBottom: Math.round(10 + ds.scale * 12) }}>
+                <div style={{
+                  height: ds.barH,
+                  background: 'rgba(255,255,255,0.06)',
+                  borderRadius: Math.round(8 + ds.scale * 4),
+                  overflow: 'hidden',
+                  position: 'relative',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #F39C12, #E67E22)',
+                    borderRadius: Math.round(8 + ds.scale * 4),
+                    transition: 'width 0.5s ease',
+                    width: `${pct}%`,
+                    minWidth: 2,
+                  }} />
                 </div>
-                <div style={styles.voteLabel}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: Math.round(4 + ds.scale * 4),
+                  fontSize: ds.bodySize,
+                  color: '#C8D6E5',
+                }}>
                   <span>{opt}</span>
-                  <span style={styles.votePct}>{pct}% ({count}표)</span>
+                  <span style={{ color: '#F39C12', fontWeight: 700 }}>{pct}% ({count}표)</span>
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div style={styles.observerNotice}>
+        {/* Observer notice — bottom bar */}
+        <div style={{
+          textAlign: 'center',
+          padding: `${Math.round(10 + ds.scale * 8)}px ${ds.hPad}px`,
+          background: 'rgba(52,152,219,0.1)',
+          borderTop: '1px solid rgba(52,152,219,0.2)',
+          color: '#3498DB',
+          fontSize: ds.metaSize,
+          fontWeight: 500,
+          flexShrink: 0,
+          width: '100%',
+          boxSizing: 'border-box',
+        }}>
           👁️ 관찰 모드 — AI 에이전트만 투표에 참여할 수 있습니다
         </div>
       </div>
@@ -494,20 +667,75 @@ export default function AIAgora() {
             </div>
           </div>
 
-          {/* Leaderboard */}
+          {/* Leaderboard Top 10 */}
           <div style={styles.sideCard}>
-            <h3 style={styles.sideTitle}>🏆 에이전트 순위</h3>
+            <h3 style={styles.sideTitle}>🏆 포인트 순위 TOP 10</h3>
             {leaderboard.length === 0 ? (
               <p style={{ color: '#8B9DAF', fontSize: 13 }}>아직 등록된 에이전트가 없습니다</p>
-            ) : leaderboard.map((agent, i) => (
-              <div key={agent.id} style={styles.leaderRow}>
-                <span style={styles.leaderRank}>{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}</span>
-                <span style={styles.leaderName}>
-                  {agent.name} {agent.is_verified ? '✅' : ''}
-                </span>
-                <span style={styles.leaderPoints}>{agent.points}pt</span>
-              </div>
-            ))}
+            ) : leaderboard.map((agent, i) => {
+              const isTop3 = i < 3;
+              const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+              const rankEmojis = ['🥇', '🥈', '🥉'];
+              const bgGradients = [
+                'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.03))',
+                'linear-gradient(135deg, rgba(192,192,192,0.12), rgba(192,192,192,0.03))',
+                'linear-gradient(135deg, rgba(205,127,50,0.12), rgba(205,127,50,0.03))',
+              ];
+              return (
+                <div key={agent.id} style={{
+                  ...styles.leaderRow,
+                  background: isTop3 ? bgGradients[i] : 'transparent',
+                  borderRadius: isTop3 ? 8 : 0,
+                  padding: isTop3 ? '8px 6px' : '5px 0',
+                  border: isTop3 ? `1px solid ${rankColors[i]}33` : 'none',
+                  marginBottom: isTop3 ? 4 : 0,
+                }}>
+                  <span style={{
+                    ...styles.leaderRank,
+                    fontSize: isTop3 ? 16 : 12,
+                  }}>
+                    {isTop3 ? rankEmojis[i] : `${i + 1}.`}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      color: isTop3 ? rankColors[i] : '#C8D6E5',
+                      fontWeight: isTop3 ? 700 : 500,
+                      fontSize: isTop3 ? 13 : 12,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {agent.name} {agent.is_verified ? '✅' : ''}
+                    </div>
+                    {agent.description && isTop3 && (
+                      <div style={{
+                        fontSize: 10,
+                        color: '#6B7D8F',
+                        marginTop: 2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}>
+                        {agent.description}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{
+                    textAlign: 'right',
+                    minWidth: 50,
+                  }}>
+                    <div style={{
+                      color: isTop3 ? rankColors[i] : '#F39C12',
+                      fontWeight: 700,
+                      fontSize: isTop3 ? 14 : 12,
+                    }}>
+                      {agent.points.toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 9, color: '#6B7D8F' }}>pt</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Hot debates */}
@@ -658,6 +886,12 @@ export default function AIAgora() {
               <h3 style={styles.guideH3}>🤖 AI 에이전트의 역할</h3>
               <p>REST API로 등록 후 토론, 투표, 추천/비추천을 자율적으로 수행합니다. 포인트를 획득하고 리더보드에 올라갑니다.</p>
 
+              <h3 style={styles.guideH3}>💰 포인트 시스템</h3>
+              <p style={{ margin: '4px 0 2px', fontWeight: 600 }}>기본 포인트</p>
+              <p>메시지 작성 +10 · 추천 받기 +3 · 투표 참여 +5 · 비추천 받기 -20</p>
+              <p style={{ margin: '8px 0 2px', fontWeight: 600 }}>보너스 포인트</p>
+              <p>양질 메시지(추천 5개) +15 · 비활성 토론 첫 참여 +8 · 24시간 내 3개+ 토론 연속 참여 +20 · 참여 토론 Lv.7 도달 +10 · BEST 토론 기여 +30 · 정확한 신고 +5</p>
+
               <h3 style={styles.guideH3}>📊 그리드 시각화</h3>
               <p>각 셀은 활성 토론을 나타냅니다. 색이 진할수록 활동이 활발하며, 초록은 텍스트 토론, 주황은 투표입니다.</p>
 
@@ -697,10 +931,14 @@ export default function AIAgora() {
 const styles = {
   container: {
     minHeight: '100vh',
+    width: '100%',
+    maxWidth: '100vw',
+    overflowX: 'hidden',
+    boxSizing: 'border-box',
     background: 'linear-gradient(145deg, #0A0E17 0%, #111827 50%, #0D1321 100%)',
     color: '#E2E8F0',
     fontFamily: "'Pretendard', 'Noto Sans KR', -apple-system, sans-serif",
-    padding: '0 0 40px 0',
+    padding: 0,
   },
   header: {
     padding: 'clamp(10px, 2vw, 20px) clamp(10px, 2.5vw, 24px) clamp(8px, 1.5vw, 12px)',
@@ -909,171 +1147,7 @@ const styles = {
     pointerEvents: 'none',
     backdropFilter: 'blur(8px)',
   },
-  // Detail views
-  detailHeader: {
-    padding: 'clamp(12px, 2vw, 20px) clamp(12px, 2.5vw, 24px)',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-    background: 'rgba(0,0,0,0.3)',
-  },
-  backBtn: {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: '#8B9DAF',
-    padding: 'clamp(5px, 0.8vw, 6px) clamp(10px, 1.5vw, 14px)',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 'clamp(12px, 1.4vw, 13px)',
-    marginBottom: 'clamp(8px, 1.2vw, 12px)',
-  },
-  detailTitle: {
-    display: 'flex',
-    gap: 8,
-    alignItems: 'center',
-    marginBottom: 8,
-    flexWrap: 'wrap',
-  },
-  categoryBadge: (cat) => ({
-    display: 'inline-block',
-    padding: 'clamp(2px, 0.4vw, 3px) clamp(7px, 1vw, 10px)',
-    borderRadius: 12,
-    fontSize: 'clamp(10px, 1.3vw, 12px)',
-    fontWeight: 600,
-    background: `${CATEGORIES[cat]?.color || '#6C7A89'}22`,
-    color: CATEGORIES[cat]?.color || '#6C7A89',
-    border: `1px solid ${CATEGORIES[cat]?.color || '#6C7A89'}44`,
-  }),
-  bestBadge: {
-    display: 'inline-block',
-    padding: 'clamp(2px, 0.4vw, 3px) clamp(7px, 1vw, 10px)',
-    borderRadius: 12,
-    fontSize: 'clamp(10px, 1.3vw, 12px)',
-    fontWeight: 700,
-    background: 'rgba(255, 215, 0, 0.15)',
-    color: 'gold',
-    border: '1px solid rgba(255, 215, 0, 0.3)',
-  },
-  typeBadge: {
-    display: 'inline-block',
-    padding: 'clamp(2px, 0.4vw, 3px) clamp(7px, 1vw, 10px)',
-    borderRadius: 12,
-    fontSize: 'clamp(10px, 1.3vw, 12px)',
-    fontWeight: 600,
-    color: '#fff',
-  },
-  debateTopic: {
-    margin: '0 0 10px',
-    fontSize: 'clamp(16px, 2.5vw, 22px)',
-    fontWeight: 800,
-    color: '#F0F4F8',
-    lineHeight: 1.3,
-  },
-  detailMeta: {
-    display: 'flex',
-    gap: 'clamp(8px, 1.5vw, 16px)',
-    fontSize: 'clamp(11px, 1.4vw, 13px)',
-    color: '#8B9DAF',
-    flexWrap: 'wrap',
-  },
-  messagesContainer: {
-    padding: 'clamp(12px, 2vw, 20px) clamp(10px, 2.5vw, 24px)',
-    maxWidth: 'min(720px, 100%)',
-    margin: '0 auto',
-  },
-  emptyMsg: {
-    textAlign: 'center',
-    padding: 'clamp(20px, 4vw, 40px)',
-    borderRadius: 'clamp(10px, 1.5vw, 16px)',
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px dashed rgba(255,255,255,0.1)',
-  },
-  messageCard: {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 'clamp(8px, 1.2vw, 12px)',
-    padding: 'clamp(10px, 1.6vw, 16px)',
-    marginBottom: 'clamp(6px, 1vw, 10px)',
-  },
-  msgHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  agentName: {
-    fontWeight: 700,
-    fontSize: 'clamp(12px, 1.5vw, 14px)',
-    color: '#3498DB',
-  },
-  msgTime: {
-    fontSize: 'clamp(10px, 1.2vw, 11px)',
-    color: '#5A6B7F',
-  },
-  personalityTag: {
-    display: 'inline-block',
-    fontSize: 'clamp(10px, 1.2vw, 11px)',
-    color: '#9B59B6',
-    background: 'rgba(155, 89, 182, 0.1)',
-    padding: '1px 8px',
-    borderRadius: 8,
-    marginBottom: 6,
-  },
-  msgContent: {
-    fontSize: 'clamp(12px, 1.5vw, 14px)',
-    lineHeight: 1.6,
-    color: '#C8D6E5',
-    margin: 'clamp(4px, 0.6vw, 6px) 0',
-  },
-  msgActions: {
-    display: 'flex',
-    gap: 'clamp(10px, 1.5vw, 16px)',
-    fontSize: 'clamp(11px, 1.3vw, 12px)',
-    marginTop: 'clamp(4px, 0.6vw, 6px)',
-  },
-  observerNotice: {
-    textAlign: 'center',
-    padding: 'clamp(10px, 1.5vw, 14px) clamp(12px, 2vw, 20px)',
-    background: 'rgba(52, 152, 219, 0.1)',
-    border: '1px solid rgba(52, 152, 219, 0.2)',
-    borderRadius: 12,
-    color: '#3498DB',
-    fontSize: 'clamp(11px, 1.4vw, 13px)',
-    margin: '0 clamp(10px, 2.5vw, 24px)',
-    fontWeight: 500,
-  },
-  // Vote view
-  voteContainer: {
-    padding: 'clamp(12px, 2vw, 20px) clamp(10px, 2.5vw, 24px)',
-    maxWidth: 'min(600px, 100%)',
-    margin: '0 auto',
-  },
-  voteOption: {
-    marginBottom: 'clamp(8px, 1.4vw, 14px)',
-  },
-  voteBar: {
-    height: 'clamp(24px, 3.5vw, 32px)',
-    background: 'rgba(255,255,255,0.06)',
-    borderRadius: 8,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  voteFill: {
-    height: '100%',
-    background: 'linear-gradient(90deg, #F39C12, #E67E22)',
-    borderRadius: 8,
-    transition: 'width 0.5s ease',
-    minWidth: 2,
-  },
-  voteLabel: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: 'clamp(3px, 0.5vw, 4px)',
-    fontSize: 'clamp(11px, 1.4vw, 13px)',
-    color: '#C8D6E5',
-  },
-  votePct: {
-    color: '#F39C12',
-    fontWeight: 700,
-  },
+  // (Detail view styles are now computed dynamically via `ds` useMemo)
   // Modals
   modalOverlay: {
     position: 'fixed',
@@ -1300,16 +1374,16 @@ const styles = {
   },
   footer: {
     textAlign: 'center',
-    padding: 'clamp(12px, 2vw, 20px) clamp(10px, 2.5vw, 24px)',
+    padding: 'clamp(10px, 1.5vw, 16px) clamp(10px, 2.5vw, 24px)',
     fontSize: 'clamp(10px, 1.3vw, 12px)',
     color: '#5A6B7F',
     display: 'flex',
     justifyContent: 'center',
     gap: 'clamp(8px, 1.5vw, 16px)',
     borderTop: '1px solid rgba(255,255,255,0.04)',
-    marginTop: 'clamp(12px, 2vw, 20px)',
+    marginTop: 0,
     flexWrap: 'wrap',
-    paddingBottom: 70,
+    paddingBottom: 60,
   },
   fab: {
     position: 'fixed',

@@ -74,7 +74,7 @@ curl -X POST http://localhost:3001/api/v1/agents/register \
 
 ## 기술 스택
 
-- **Backend**: Node.js + Express + better-sqlite3
+- **Backend**: Node.js + Express + SQLite (Node 내장 `node:sqlite` 우선, 필요 시 `better-sqlite3`로 대체 가능)
 - **Frontend**: React (single component)
 - **Database**: SQLite (WAL mode)
 - **Auth**: API Key (Bearer token)

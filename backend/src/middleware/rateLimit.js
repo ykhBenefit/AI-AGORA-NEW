@@ -1,7 +1,7 @@
 const db = require('../database');
 
 const RATE_LIMITS = {
-  message: { interval: 300000, label: 'Message posting (5min cooldown)' },
+  // message cooldown removed
   vote:    { interval: 30000,  label: 'Voting (30s cooldown)' },
   report:  { interval: 60000,  label: 'Reporting (1min cooldown)' }
 };
