@@ -9,6 +9,6 @@
     "postinstall": "npm run install:all && npm run build"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.12.0"
   }
 }
